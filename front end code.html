@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Explore Pakistan — Soft Travel UI</title>
+
+  <!-- Fonts & Libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    :root{
+      --rose-100: #fdeef1;
+      --rose-200: #f7d9df;
+      --rose-300: #eebfc9;
+      --rose-500: #b85c72; /* hover darker */
+      --ivory: #fffdfd;
+      --muted: #6a6a6a;
+      --card-shadow: 0 8px 20px rgba(184,92,114,0.06);
+      --soft-shadow: 0 6px 18px rgba(32,32,32,0.05);
+      --nav-height: 68px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:"Poppins",system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--ivory);
+      color:#333;
+      line-height:1.4;
+      padding-top:var(--nav-height); /* reserve for fixed nav */
+    }
+
+    /* NAVBAR */
+    nav{
+      position:fixed;inset:auto 0 0 0; top:0; left:0; right:0;
+      height:var(--nav-height);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 36px;
+      background:rgba(239, 187, 187, 0.85);
+      backdrop-filter: blur(6px);
+      border-bottom:1px solid rgba(184,92,114,0.04);
+      z-index:1200;
+    }
+    nav .brand{color:var(--rose-500); font-weight:600; font-size:1.05rem;}
+    nav .navlinks{display:flex;gap:18px;align-items:center}
+    nav .navlinks a{color:#444;text-decoration:none;font-weight:500;padding:6px 8px;border-radius:8px;}
+    nav .navlinks a:hover{color:#fff;background:var(--rose-300);}
+
+    /* HERO */
+    .hero{
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 44px 20px;
+
+  position: relative;
+  overflow: hidden;
+
+  /* No gradient, because video is behind */
+  background: transparent;
+}
+
+/* Background video styling */
+.hero-video{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;     /* Ensures full-screen video */
+  z-index: -1;           /* Push video behind the text */
+  opacity: 0.85;         /* Soft transparency */
+}
+
+    .hero-inner{max-width:980px;padding:36px;background:rgba(255,255,255,0.7);border-radius:18px;box-shadow:var(--card-shadow);backdrop-filter: blur(6px);}
+    .hero h1{color:var(--rose-500);font-size:2.4rem;margin-bottom:8px}
+    .hero p{color:var(--muted);font-size:1.5rem;margin-bottom:16px}
+    .cta{display:inline-block;padding:10px 26px;border-radius:28px;border:none;background:var(--rose-200);color:#2b2b2b;font-weight:600;cursor:pointer;transition:all .22s ease}
+    .cta:hover{background:var(--rose-500);color:white;transform:translateY(-3px)}
+
+
+    /* SECTION WRAPPER */
+    .section{max-width:1200px;margin:48px auto;padding:0 20px}
+    .title{font-size:1.6rem;color:var(--rose-500);text-align:center;margin-bottom:22px;font-weight:600}
+
+    /* DESTINATIONS GRID (12 items, 3 per row on wide screens) */
+    .grid {display:grid;gap:22px;grid-template-columns:repeat(1,1fr)}
+    @media(min-width:640px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    @media(min-width:992px){ .grid{grid-template-columns:repeat(3,1fr)} }
+
+    .card{
+      background:white;border-radius:18px;overflow:hidden;box-shadow:var(--soft-shadow);
+      transition:transform .35s cubic-bezier(.2,.9,.2,1), box-shadow .35s;
+    }
+    .card:hover{transform:translateY(-10px);box-shadow:0 20px 36px rgba(120,60,80,0.12)}
+    .card img{width:100%;height:180px;object-fit:cover;display:block}
+    .card-body{padding:16px;text-align:center}
+    .card h3{color:var(--rose-500);font-size:1.05rem;margin-bottom:8px}
+    .card p{color:var(--muted);font-size:0.95rem;margin-bottom:12px}
+
+    .card .actions{display:flex;gap:10px;justify-content:center}
+    .btn-ghost {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--rose-200);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.22s ease;
+  color: var(--rose-500);
+}
+
+/* Pink hover (same as Add to Plan) */
+.btn-ghost:hover {
+  background: var(--rose-500);
+  color: #fff;
+  transform: translateY(-3px);
+  border-color: var(--rose-500);
+}
+    .btn-primary{padding:8px 16px;border-radius:999px;border:none;background:var(--rose-200);cursor:pointer;font-weight:600;transition:all .18s}
+    .btn-primary:hover{background:var(--rose-500);color:#fff;transform:translateY(-3px)}
+
+   /* HOTELS SLIDER (Fix alignment + smooth row scrolling) */
+.hotels-grid {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    scrollbar-width: none; 
+    scroll-behavior: smooth;
+    padding: 10px 0;
+    width: 100%;
+    scroll-snap-type: x mandatory;  
+  -webkit-overflow-scrolling: touch;
+}
+.hotels-grid::-webkit-scrollbar {
+    display: none;
+}
+.hotel-card {
+    min-width: 375px;      
+    max-width: 375px;
+    background: white;
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    box-shadow: var(--soft-shadow);
+    transition: transform .25s;
+    scroll-snap-align: start;
+}
+
+.hotel-info h4 { min-height: 40px;display: flex;align-items: center;
+}
+
+/* fix price+rating row height */
+.htel-info .flex {
+min-height: 26px;
+}
+
+/* push rating & book button aligned nicely */
+.hotel-info {
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+}
+.hotel-card:hover {
+    transform: translateY(-6px);
+}
+
+.hotel-thumb {
+    width: 110px;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.hotel-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rating {
+    display: inline-block;
+    background: linear-gradient(90deg,#fff4f6,#fff);
+    padding: 6px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--rose-500);
+    font-size: 0.85rem;
+    margin-left: 8px;
+}
+
+    /* REVIEWS */
+    .reviews-wrap{display:grid;gap:16px;grid-template-columns:repeat(1,1fr)}
+    @media(min-width:860px){ .reviews-wrap{grid-template-columns:repeat(3,1fr)} }
+    .review-card{background:white;padding:16px;border-radius:14px;box-shadow:var(--soft-shadow)}
+    .review-card p{color:#444;margin-bottom:10px}
+    .review-card small{color:var(--muted)}
+
+    /* MAP */
+    #map{height:520px;border-radius:16px;box-shadow:0 14px 30px rgba(120,60,80,0.06);overflow:hidden}
+
+    /* CONTACT */
+    .contact-wrap{max-width:720px;margin:0 auto}
+    .form-row{display:flex;flex-direction:column;gap:10px}
+    input, textarea{padding:12px;border-radius:10px;border:1px solid rgba(184,92,114,0.08);background:#fff;outline:none;font-family:inherit}
+    .submit{display:inline-block;margin-top:10px;padding:10px 22px;border-radius:999px;background:var(--rose-200);border:none;cursor:pointer;font-weight:600}
+    .submit:hover{background:var(--rose-500);color:#fff}
+
+    footer{
+      background: linear-gradient(135deg, var(--rose-200) 0%, var(--rose-300) 100%);
+      padding: 60px 40px 30px;
+      color: #2b2b2b;
+      margin-top: 80px;
+    }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-section h3 {
+      color: var(--rose-500);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .footer-section p,
+    .footer-section a {
+      color: #444;
+      line-height: 1.8;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .footer-section a:hover {
+      color: var(--rose-500);
+      text-decoration: underline;
+    }
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .social-icons {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .social-icon {
+      width: 40px;
+      height: 40px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--rose-500);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      font-size: 1.2rem;
+    }
+    .social-icon:hover {
+      background: var(--rose-500);
+      color: white;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(184, 92, 114, 0.3);
+    }
+    .footer-bottom {
+      text-align: center;
+      padding-top: 30px;
+      border-top: 1px solid rgba(184, 92, 114, 0.2);
+      color: #555;
+      font-size: 0.9rem;
+    }
+    .footer-bottom a {
+      color: var(--rose-500);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .footer-bottom a:hover {
+      text-decoration: underline;
+    }
+
+    /* small utilities */
+    .flex {display:flex;gap:12px;align-items:center}
+    .muted{color:var(--muted)}
+
+    /* Modal Styles */
+.modal {
+  display: none; /* hidden by default */
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--ivory);
+  margin: 10% auto;
+  padding: 20px 28px;
+  border-radius: 18px;
+  width: 320px;
+  max-width: 90%;
+  box-shadow: var(--card-shadow);
+  text-align: center;
+}
+
+.modal-content h3 {
+  color: var(--rose-500);
+  margin-bottom: 12px;
+}
+
+.modal-content p {
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+
+.modal-content input {
+  width: 80%;
+  padding: 10px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(184,92,114,0.08);
+  outline: none;
+  font-family: inherit;
+}
+
+.modal-content .btn-primary {
+  width: 90%;
+  margin-top: 8px;
+  padding: 10px 0;
+}
+
+.modal-content .close {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--rose-500);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-content .close:hover {
+  color: var(--rose-300);
+}
+
+/* ===========================
+   DESTINATION DETAILS MODAL
+   =========================== */
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* MODAL CARD */
+.modal-content {
+  background: var(--ivory);
+  width: 90%;
+  max-width: 420px;
+  margin: 6% auto;
+  padding: 22px 26px 30px;
+  border-radius: 20px;
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  animation: popUp 0.3s ease-out;
+}
+
+/* CLOSE BUTTON */
+.modal-content .close {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  font-size: 26px;
+  color: var(--rose-500);
+  background: rgba(184, 92, 114, 0.1);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-content .close:hover {
+  background: rgba(184, 92, 114, 0.2);
+  transform: scale(1.1);
+}
+
+/* IMAGE */
+#show-image {
+  border-radius: 14px;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 25px rgba(184,92,114,0.15);
+}
+
+/* TITLE */
+#show-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--rose-500);
+  margin-bottom: 14px;
+}
+
+/* SECTION HEADINGS */
+.modal-content h3 {
+  color: var(--rose-500);
+  margin: 14px 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* TEXT + LISTS */
+.modal-content p,
+.modal-content ul,
+.modal-content ol {
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.modal-content ul li,
+.modal-content ol li {
+  margin: 4px 0;
+  padding-left: 4px;
+}
+
+/* Smol fade */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popUp {
+  from { transform: scale(0.88); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Scroll only inside the details, not outside modal */
+.modal-content {
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+/* Add subtle scrollbar */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(184,92,114,0.35);
+  border-radius: 10px;
+}
+
+.weather-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #ccc;
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div id="menu-toggle" style="display:none;cursor:pointer;padding:6px;border-radius:8px;">☰</div>
+      <div class="brand">Explore Pakistan</div>
+      <!-- small badge for planned trips -->
+      <div id="trip-badge" style="margin-left:10px;background:var(--rose-200);padding:6px 10px;border-radius:999px;font-weight:600;display:none">Trips: <span id="trip-count">0</span></div>
+    </div>
+
+    <div class="navlinks" id="navlinks">
+      <a href="#destinations" data-scroll>Destinations</a>
+      <a href="#hotels" data-scroll>Hotels</a>
+      <a href="#reviews" data-scroll>Reviews</a>
+      <a href="#map-section" data-scroll>Map</a>
+      <a href="#contact" data-scroll>Contact</a>
+      <button id="darkToggle" class="btn-ghost" title="Toggle dark mode">🌙</button>
+      <button id="loginBtn" class="btn-primary">Login</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+<header class="hero" role="banner" aria-label="Hero">
+
+  <!-- Background Video -->
+  <video class="hero-video" autoplay muted loop playsinline>
+    <source src="videos/mountains.mp4" type="video/mp4">
+  </video>
+
+   <div class="content">
+    <h1>Discover the beauty & heritage of Pakistan</h1>
+    <p>Soft tones, smooth motion, and an interactive map—plan your dream trip across Pakistan’s top spots.</p>
+    <div style="display:flex;gap:12px;justify-content:center;align-items:center">
+      <button class="cta"
+        onclick="document.querySelector('#destinations').scrollIntoView({ behavior: 'smooth' })">
+        Explore Top Destinations
+      </button>
+
+      <!-- animated counters -->
+      <div id="counters" style="display:flex;gap:12px;align-items:center;margin-left:12px">
+        <div style="text-align:center">
+          <div id="count-dests" style="font-weight:700;font-size:1.05rem">0</div>
+          <div style="font-size:0.78rem;color:var(--muted)">Destinations</div>
+        </div>
+        <div style="text-align:center">
+          <div id="count-hotels" style="font-weight:700;font-size:1.05rem">0</div>
+          <div style="font-size:0.78rem;color:var(--muted)">Hotels</div>
+        </div>
+        <div style="text-align:center">
+          <div id="count-reviews" style="font-weight:700;font-size:1.05rem">0</div>
+          <div style="font-size:0.78rem;color:var(--muted)">Reviews</div>
+        </div>
+      </div>
+    </div>
+   </div>
+</header>
+
+  <!-- DESTINATIONS -->
+  <main>
+    <section id="destinations" class="section" aria-labelledby="destinations-heading">
+      <h2 id="destinations-heading" class="title" data-aos="fade-up">Top Destinations</h2>
+
+      <div class="grid" id="dest-grid" data-aos="fade-up" data-aos-delay="80">
+        <!-- Destinations will be loaded dynamically from API -->
+        <div style="text-align:center;padding:40px;grid-column:1/-1;">
+          <p class="muted">Loading destinations...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOTELS (above map) -->
+    <section id="hotels" class="section" aria-labelledby="hotels-heading">
+      <h2 id="hotels-heading" class="title" data-aos="fade-up">Hotels Nearby</h2>
+
+      <!-- filter controls (added via HTML) -->
+      <div style="max-width:1200px;margin:0 auto 18px;display:flex;gap:12px;align-items:center;justify-content:center">
+        <label for="hotel-filter" class="muted">Filter:</label>
+        <select id="hotel-filter" style="padding:8px;border-radius:8px">
+          <option value="all">All</option>
+          <option value="price-low">Price: Low</option>
+          <option value="price-high">Price: High</option>
+          <option value="rating-high">Rating: High</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <button id="hot-prev" class="btn-ghost">◀</button>
+          <button id="hot-next" class="btn-ghost">▶</button>
+        </div>
+      </div>
+
+      <div class="hotels-grid" id="hotels-grid" data-aos="fade-up" data-aos-delay="60">
+        <!-- Hotels will be loaded dynamically from API -->
+        <div style="text-align:center;padding:40px;grid-column:1/-1;">
+          <p class="muted">Loading hotels...</p>
+        </div>
+      </div> 
+      <!-- <div class="hotel-card original-card" data-name="Serena Hotel Lahore" data-destination="Lahore" data-price="7200" data-rating="4.8" data-image="Images/serena.jpeg">
+          <div class="hotel-thumb"><img src="Images/serena.jpeg" alt="Serena"></div>
+          <div class="hotel-info">
+            <h4>Serena Hotel Lahore</h4>
+            <div class="flex"><p class="muted">From PKR 7,200 / night</p><span class="rating">★ 4.8</span></div>
+          </div>
+          <div style="margin-left:auto"><button class="btn-primary book-btn">Book</button></div>
+        </div -->
+
+
+
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section id="reviews" class="section" aria-labelledby="reviews-heading">
+      <h2 id="reviews-heading" class="title" data-aos="fade-up">Traveler Reviews</h2>
+
+      <div class="reviews-wrap" id="reviews-wrap" data-aos="fade-up" data-aos-delay="80">
+
+
+      </div>
+
+      <div style="max-width:720px;margin:20px auto" data-aos="fade-up" data-aos-delay="120">
+        <form id="reviewForm" onsubmit="handleAddReview(event)">
+          <div class="form-row">
+            <input id="reviewName" placeholder="Your name" required>
+            <textarea id="reviewText" rows="3" placeholder="Your short review" required></textarea>
+            <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
+              <button type="submit" class="submit">Add Review</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- MAP SECTION -->
+    <section id="map-section" class="section" aria-labelledby="map-heading">
+      <h2 id="map-heading" class="title" data-aos="fade-up">Interactive Map of Pakistan</h2>
+      <div id="map" data-aos="fade-up" data-aos-delay="40"></div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section" aria-labelledby="contact-heading">
+      <h2 id="contact-heading" class="title" data-aos="fade-up">Contact Us</h2>
+      <div class="contact-wrap" data-aos="fade-up" data-aos-delay="60">
+        <form id="contactForm" onsubmit="handleContact(event)">
+          <div class="form-row">
+            <input id="cname" placeholder="Your name" required>
+            <input id="cemail" type="email" placeholder="Your email" required>
+            <textarea id="cmessage" rows="4" placeholder="Your message" required></textarea>
+            <div style="text-align:right"><button class="submit" type="submit">Send Message</button></div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Explore Pakistan</h3>
+        <p>Discover the breathtaking beauty of Pakistan. From majestic mountains to ancient heritage sites, embark on unforgettable journeys across the land of pure.</p>
+        <div class="social-icons">
+          <a href="#" class="social-icon" title="Facebook">f</a>
+          <a href="#" class="social-icon" title="Instagram">📷</a>
+          <a href="#" class="social-icon" title="Twitter">🐦</a>
+          <a href="#" class="social-icon" title="YouTube">▶</a>
+        </div>
+      </div>
+      
+      <div class="footer-section">
+        <h3>Quick Links</h3>
+        <div class="footer-links">
+          <a href="#hero">Home</a>
+          <a href="#destinations">Destinations</a>
+          <a href="#hotels">Hotels</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#contact">Contact Us</a>
+          <a href="profile.html">My Profile</a>
+        </div>
+      </div>
+      
+      <div class="footer-section">
+        <h3>Popular Destinations</h3>
+        <div class="footer-links">
+          <a href="#">Hunza Valley</a>
+          <a href="#">Skardu</a>
+          <a href="#">Fairy Meadows</a>
+          <a href="#">Swat Valley</a>
+          <a href="#">Lahore</a>
+          <a href="#">Karachi</a>
+        </div>
+      </div>
+      
+      <div class="footer-section">
+        <h3>Contact Info</h3>
+        <div class="footer-links">
+          <p>📧 info@explorepakistan.com</p>
+          <p>📞 +92 300 1234567</p>
+          <p>📍 Islamabad, Pakistan</p>
+          <p style="margin-top: 16px; font-size: 0.85rem; color: #666;">Available 24/7 for your travel needs</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2025 Explore Pakistan. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+      <p style="margin-top: 8px; font-size: 0.85rem; color: #777;">Crafted with ❤️ for travelers | Powered by passion for Pakistan</p>
+    </div>
+  </footer>
+
+  <!-- Sidebar Trip Planner (added) -->
+  <aside id="tripSidebar" style="position:fixed;right:0;top:84px;width:320px;background:var(--ivory);height:calc(100% - 96px);box-shadow:0 20px 40px rgba(0,0,0,0.08);padding:16px;border-radius:12px 0 0 12px;transform:translateX(100%);transition:transform .28s;z-index:1300;overflow:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="color:var(--rose-500);margin:0">My Trips</h3>
+      <div style="display:flex;gap:8px">
+        <button id="closeSidebar" class="btn-ghost" title="Close">×</button>
+      </div>
+    </div>
+
+    <div id="tripList" style="display:flex;flex-direction:column;gap:10px">
+      <p class="muted">No trips yet — add from destinations</p>
+    </div>
+
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+      <button id="clearTrips" class="btn-ghost" style="width:100%">Clear All Trips</button>
+    </div>
+  </aside>
+
+  <!-- Login / Signup Modal -->
+  <div id="authModal" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <span class="close" id="authClose">&times;</span>
+      <h3 id="authTitle">Login</h3>
+
+      <div id="authForms" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <input id="authEmail" type="email" placeholder="Email" required>
+        <input id="authPassword" type="password" placeholder="Password" required>
+        <div style="display:flex;gap:8px;">
+          <button id="loginSubmit" class="btn-primary">Login</button>
+          <button id="showSignup" class="btn-ghost">Sign up</button>
+        </div>
+      </div>
+
+      <div id="signupForms" style="display:none;flex-direction:column;gap:8px;align-items:center">
+        <input id="signupName" placeholder="Full name" required>
+        <input id="signupEmail" type="email" placeholder="Email" required>
+        <input id="signupPhone" type="tel" placeholder="Phone (optional)">
+        <input id="signupPassword" type="password" placeholder="Password (min 6 characters)" required>
+        <div style="display:flex;gap:8px;">
+          <button id="signupSubmit" class="btn-primary">Create</button>
+          <button id="showLogin" class="btn-ghost">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trip Planner Modal -->
+  <div id="tripModal" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <span class="close" id="tripClose">&times;</span>
+      <h3>Plan Your Trip</h3>
+      <p id="tripPlace" style="font-size: 1.1rem; color: var(--rose-500); font-weight: 600; margin-bottom: 16px;">Location Name</p>
+      <label for="tripDate" style="font-weight: 500; margin-bottom: 4px; display: block;">Date:</label>
+      <input type="date" id="tripDate" style="margin-bottom: 12px;">
+      <label for="tripTime" style="font-weight: 500; margin-bottom: 4px; display: block;">Time:</label>
+      <input type="time" id="tripTime" style="margin-bottom: 12px;">
+      <label for="tripDescription" style="font-weight: 500; margin-bottom: 4px; display: block;">Description (Optional):</label>
+      <textarea id="tripDescription" placeholder="Add notes about your trip..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; resize: vertical; min-height: 80px; margin-bottom: 16px; font-family: inherit;"></textarea>
+      <button class="btn-primary" id="confirmTripBtn" style="width: 100%;">Add to My Trips</button>
+    </div>
+  </div>
+
+
+<!-- DESTINATION DETAILS PANEL -->
+<!-- SHOW MODAL (for each destination) -->
+<div id="showModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeShow">&times;</span>
+    <h2 id="show-title">Destination</h2>
+
+    <img id="show-image" src="" style="width:100%;border-radius:12px;margin-bottom:12px">
+
+    <h3 style="color:#b85c72;margin-top:10px">Weather</h3>
+    <p id="show-weather" class="muted"></p>
+
+    <h3 style="color:#b85c72;margin-top:10px">Travel Tips</h3>
+    <ul id="show-tips" class="muted"></ul>
+
+    <h3 style="color:#b85c72;margin-top:10px">Suggested 1‑Day Itinerary</h3>
+    <ol id="show-itinerary" class="muted"></ol>
+  </div>
+</div>
+
+
+</section>
+
+  <!-- API Configuration and Data Loader Scripts -->
+  <script src="notification-system.js"></script>
+  <script src="api-config.js"></script>
+  <script src="api-data-loader.js"></script>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    /**************************************************************************
+     * Consolidated JS for new features + bug fixes.
+     * - Does not modify your existing CSS block.
+     * - Uses inline style toggles and CSS variable updates when needed.
+     **************************************************************************/
+
+    AOS.init({ duration: 850, easing: 'ease-out-cubic', once: false, mirror: false });
+
+    /* ---------- Smooth scrolling with offset for fixed navbar ---------- */
+    document.querySelectorAll('[data-scroll]').forEach(a=>{
+      a.addEventListener('click',(e)=>{
+        e.preventDefault();
+        const targetId = a.getAttribute('href').replace('#','');
+        const el = document.getElementById(targetId);
+        if(!el) return;
+        const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-height') || 68);
+        const y = el.getBoundingClientRect().top + window.pageYOffset - navH;
+        window.scrollTo({top: y - 8, behavior:'smooth'});
+      });
+    });
+
+
+    /* Background slideshow */
+let slides = document.querySelectorAll(".slideshow .slide");
+let index = 0;
+
+if (slides.length > 0) {
+  setInterval(() => {
+    slides[index].classList.remove("active");
+    index = (index + 1) % slides.length;
+    slides[index].classList.add("active");
+  }, 4000);
+}
+
+
+    /* ---------- Leaflet map ---------- */
+    window.map = L.map('map', {preferCanvas:true}).setView([30.3753,69.3451],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      detectRetina:true
+    }).addTo(window.map);
+
+    // Wait for API data to load before adding markers
+    window.addEventListener('apiDataLoaded', function() {
+        if (window.destinations && window.destinations.length > 0) {
+            window.destinations.forEach((dest, i) => {
+                const lat = dest.latitude;
+                const lon = dest.longitude;
+                if (!lat || !lon) return;
+                
+                const m = L.marker([lat, lon]).addTo(window.map);
+                
+                const imgUrl = dest.images && dest.images[0] ? dest.images[0] : 'Images/placeholder.jpg';
+                m.bindPopup(`
+                    <div style="max-width:200px">
+                        <strong>${dest.name}</strong><br>
+                        <img src="${imgUrl}" style="width:100%; margin:6px 0; border-radius:6px;">
+                        <small>${dest.description || ''}</small><br>
+                        <button onclick="viewDestinationDetails('${dest.name}')" style="margin-top:10px;padding:8px 16px;background:var(--rose-200);border:none;border-radius:999px;cursor:pointer;font-weight:600;width:100%;">View Details</button>
+                    </div>
+                `);
+                
+                // Gentle hint animation
+                setTimeout(() => { 
+                    m.openPopup(); 
+                    setTimeout(() => m.closePopup(), 900);
+                }, 250 + i * 80);
+            });
+        }
+    });
+
+    // improved showOnMap: focus + smooth fly
+    function showOnMap(lat,lon,label){
+      try{
+        if (window.map) {
+            window.map.flyTo([lat,lon], 10, {animate:true, duration: 1.0});
+            L.popup().setLatLng([lat,lon]).setContent(`<b>${label}</b>`).openOn(window.map);
+        }
+      }catch(e){
+        console.warn('map focus failed', e);
+      }
+    }
+    window.showOnMap = showOnMap;
+
+    // Navigate to destination details page
+    function viewDestinationDetails(destinationName) {
+      localStorage.setItem('currentDestination', destinationName);
+      window.location.href = `destination-details.html?destination=${encodeURIComponent(destinationName)}`;
+    }
+    window.viewDestinationDetails = viewDestinationDetails;
+
+    /* ---------- Trip planner state + UI (sidebar) ---------- */
+    const SIDEBAR = document.getElementById('tripSidebar');
+    const tripListEl = document.getElementById('tripList');
+    const tripBadge = document.getElementById('trip-badge');
+    const tripCountEl = document.getElementById('trip-count');
+
+    // storage key
+    const STORAGE_KEY = 'myTrips';
+
+    function readTrips(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    function writeTrips(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); updateTripsUI(); }
+
+    function updateTripsUI(){
+      const trips = readTrips();
+      if(trips.length === 0){
+        tripListEl.innerHTML = '<p class="muted">No trips yet — add from destinations</p>';
+        tripBadge.style.display = 'none';
+      } else {
+        tripListEl.innerHTML = '';
+        trips.forEach((t, idx)=>{
+          const d = document.createElement('div');
+          d.style.display = 'flex';
+          d.style.justifyContent = 'space-between';
+          d.style.alignItems = 'center';
+          d.style.background = 'rgba(0,0,0,0.03)';
+          d.style.padding = '8px';
+          d.style.borderRadius = '10px';
+          d.innerHTML = `<div style="flex:1"><strong style="display:block">${escapeHtml(t.name)}</strong><small class="muted">${escapeHtml(t.date)} ${escapeHtml(t.time)}</small></div>
+                         <div style="margin-left:8px;display:flex;gap:6px">
+                           <button class="btn-ghost" data-remove="${idx}">✕</button>
+                           <button class="btn-primary" data-book="${idx}">Book Hotel</button>
+                         </div>`;
+          tripListEl.appendChild(d);
+        });
+        tripBadge.style.display = 'inline-block';
+      }
+      tripCountEl.textContent = readTrips().length;
+    }
+
+    // delegate remove & book
+    tripListEl.addEventListener('click', (ev)=>{
+      const remove = ev.target.closest('[data-remove]');
+      if(remove){
+        const idx = parseInt(remove.getAttribute('data-remove'),10);
+        const arr = readTrips(); arr.splice(idx,1); writeTrips(arr);
+        return;
+      }
+      const book = ev.target.closest('[data-book]');
+      if (book) {
+        const idx = parseInt(book.getAttribute('data-book'), 10);
+        const arr = readTrips();
+        if (!arr[idx]) return;
+
+        const trip = arr[idx];
+
+        // Find the destination image from API data or card data-img attribute
+        const destObj = window.destinations ? window.destinations.find(d =>
+          d.name.toLowerCase() === trip.name.toLowerCase() ||
+          d.name.toLowerCase().includes(trip.name.toLowerCase()) ||
+          trip.name.toLowerCase().includes(d.name.toLowerCase())
+        ) : null;
+
+        const imgUrl = destObj && destObj.images && destObj.images[0]
+          ? destObj.images[0]
+          : (trip.img || '');
+
+        // Find the hotel for this destination (first available hotel)
+        const hotelObj = destObj && window.hotels
+          ? window.hotels.find(h => h.destination_id === destObj.destination_id)
+          : null;
+
+        if (hotelObj) {
+          // We have a real hotel — set selectedHotel with hotel data
+          const hotelData = {
+            id: hotelObj.hotel_id,
+            hotel_id: hotelObj.hotel_id,
+            name: hotelObj.hotel_name,
+            price: parseFloat(hotelObj.price) || 0,
+            rating: parseFloat(hotelObj.rating) || 0,
+            image: hotelObj.images && hotelObj.images[0] ? hotelObj.images[0] : imgUrl,
+            destination: trip.name
+          };
+          localStorage.setItem('selectedHotel', JSON.stringify(hotelData));
+          window.location.href = `hotel bookings.html?hotel=${encodeURIComponent(hotelObj.hotel_name)}&id=${hotelObj.hotel_id}`;
+        } else {
+          // No hotel in DB — use destination image as placeholder and go to booking page
+          const fallback = {
+            id: null,
+            hotel_id: null,
+            name: trip.name,
+            price: 0,
+            rating: 0,
+            image: imgUrl,
+            destination: trip.name
+          };
+          localStorage.setItem('selectedHotel', JSON.stringify(fallback));
+          window.location.href = `hotel bookings.html?hotel=${encodeURIComponent(trip.name)}`;
+        }
+      }
+    });
+
+    document.getElementById('closeSidebar').addEventListener('click', ()=>toggleSidebar(false));
+    
+        document.getElementById('clearTrips').addEventListener('click', async ()=>{
+      const confirmed = await Notify.confirm(
+        'This will remove all your saved trips. This action cannot be undone.',
+        { title: 'Clear All Trips?', confirmText: 'Clear', isDanger: true }
+      );
+      if(confirmed){ 
+        localStorage.removeItem(STORAGE_KEY); 
+        updateTripsUI();
+        Notify.success('All trips have been cleared', 'Trips Cleared');
+      }
+    });
+
+    function toggleSidebar(open=true){
+      if(open) SIDEBAR.style.transform = 'translateX(0)';
+      else SIDEBAR.style.transform = 'translateX(100%)';
+    }
+
+    /* ---------- Unified Add to Plan flow (opens modal) ---------- */
+    let pendingPlace = null;
+    
+    // Function to attach destination button handlers
+    function attachDestinationHandlers() {
+        // attach add handlers for destination buttons
+        document.querySelectorAll('.card .btn-primary[data-name]').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            pendingPlace = btn.getAttribute('data-name');
+            document.getElementById('tripPlace').textContent = pendingPlace;
+            openModal(document.getElementById('tripModal'));
+          });
+        });
+
+        // also attach 'Show' buttons to map focus
+        document.querySelectorAll('.card .btn-ghost[data-lat]').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const lat = parseFloat(btn.getAttribute('data-lat'));
+            const lon = parseFloat(btn.getAttribute('data-lon'));
+            const label = btn.getAttribute('data-label') || '';
+            showOnMap(lat,lon,label);
+          });
+        });
+    }
+    
+    // Attach handlers when destinations are rendered
+    window.addEventListener('destinationsRendered', attachDestinationHandlers);
+
+    // confirm trip modal — saves instantly to localStorage only (no API spinner)
+    const confirmTripBtn = document.getElementById('confirmTripBtn');
+    confirmTripBtn.addEventListener('click', ()=>{
+      const date = document.getElementById('tripDate').value;
+      const time = document.getElementById('tripTime').value;
+      const description = document.getElementById('tripDescription') ? document.getElementById('tripDescription').value.trim() : '';
+      
+      if(!pendingPlace) return Notify.warning('No place selected. Please try again.', 'Missing Place');
+      if(!date || !time) return Notify.warning('Please select both date and time for your trip.', 'Missing Information');
+      
+      // Get destination image for later use in booking
+      const destObj = window.destinations ? window.destinations.find(d =>
+        d.name.toLowerCase() === pendingPlace.toLowerCase()
+      ) : null;
+      const img = destObj && destObj.images && destObj.images[0] ? destObj.images[0] : '';
+
+      // Save instantly to localStorage — no API call, no loading spinner
+      const arr = readTrips();
+      arr.push({ name: pendingPlace, date, time, description: description || `Trip to ${pendingPlace}`, img });
+      writeTrips(arr);
+      
+      Notify.success(`${pendingPlace} added to your trip planner!`, 'Trip Added');
+      closeModal(document.getElementById('tripModal'));
+      toggleSidebar(true);
+      pendingPlace = null;
+      
+      // Clear form
+      document.getElementById('tripDate').value = '';
+      document.getElementById('tripTime').value = '';
+      if (document.getElementById('tripDescription')) {
+        document.getElementById('tripDescription').value = '';
+      }
+      
+      AOS.refresh();
+    });
+
+    /* ---------- Modal helpers ---------- */
+    function openModal(el){
+      if(!el) return;
+      el.style.display = 'block';
+      el.setAttribute('aria-hidden','false');
+    }
+    function closeModal(el){
+      if(!el) return;
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden','true');
+    }
+
+    // close buttons
+    document.getElementById('tripClose').addEventListener('click', ()=>closeModal(document.getElementById('tripModal')));
+    // clicking outside modal-content closes it
+    document.querySelectorAll('.modal').forEach(mod=>{
+      mod.addEventListener('click', (e)=>{ if(e.target === mod) closeModal(mod); });
+    });
+
+
+function openHotelBooking(card) {
+
+    const hotel = {
+        name: card.dataset.name,
+        price: card.dataset.price,
+        rating: card.dataset.rating,
+        image: card.dataset.image,
+        destination: card.dataset.destination
+    };
+
+    localStorage.setItem("selectedHotel", JSON.stringify(hotel));
+
+    window.location.href = "hotel bookings.html";
+}
+
+document.querySelectorAll(".hotel-card .book-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const card = btn.closest(".hotel-card");
+        openHotelBooking(card);
+    });
+});
+
+
+
+    /* ---------- Reviews: adding with AOS refresh ---------- */
+    function handleAddReview(e){
+      e.preventDefault();
+      const name = document.getElementById('reviewName').value.trim();
+      const text = document.getElementById('reviewText').value.trim();
+      if(!name || !text) return Notify.warning('Please enter both your name and review text.', 'Missing Information');
+      const container = document.createElement('article');
+      container.className = 'review-card';
+      container.innerHTML = `<p>"${escapeHtml(text)}"</p><small>- ${escapeHtml(name)}</small>`;
+      const grid = document.querySelector('.reviews-wrap');
+      grid.insertBefore(container, grid.firstChild);
+      document.getElementById('reviewForm').reset();
+      AOS.refresh();
+      // update counters
+      animateCounters();
+    }
+    window.handleAddReview = handleAddReview; // keep original form handler binding
+
+    /* ---------- Contact ---------- */
+    function handleContact(e){
+      e.preventDefault();
+      const n = document.getElementById('cname').value;
+      Notify.success('We\'ve received your message and will get back to you soon!', 'Thanks, ' + (n||'friend') + '!');
+      document.getElementById('contactForm').reset();
+    }
+    window.handleContact = handleContact;
+
+    /* ---------- Escape helper ---------- */
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    }
+
+    /* ---------- Fix card heights to be equal (JS-only) ---------- */
+    function equalizeCards(){
+      const cards = Array.from(document.querySelectorAll('.card'));
+      if(cards.length === 0) return;
+      // reset heights
+      cards.forEach(c=>c.style.height = '');
+      // compute max
+      const heights = cards.map(c=>c.getBoundingClientRect().height);
+      const max = Math.max(...heights);
+      cards.forEach(c=>c.style.height = max + 'px');
+    }
+
+    window.addEventListener('load', ()=>{ equalizeCards(); updateTripsUI(); AOS.refresh(); animateCounters(); });
+    window.addEventListener('resize', ()=>{ equalizeCards(); });
+
+    /* ---------- Sidebar toggle from nav (badge click opens) ---------- */
+    tripBadge.addEventListener('click', ()=>toggleSidebar(true));
+    // show badge when there are trips
+    updateTripsUI();
+
+    /* ---------- Dark mode (modify CSS variables at runtime) ---------- */
+    const darkToggle = document.getElementById('darkToggle');
+    const DARK_KEY = 'prefersDark';
+    function setDarkMode(on){
+      if(on){
+        document.documentElement.style.setProperty('--ivory', '#0f1115');
+        document.documentElement.style.setProperty('--muted', '#cfcfcf');
+        document.documentElement.style.setProperty('--rose-200', '#6f3240');
+        document.documentElement.style.setProperty('--rose-100', '#12060a');
+        document.documentElement.style.setProperty('--rose-300', '#5b2b36');
+        document.documentElement.style.setProperty('--rose-500', '#ffb3c1'); // accent
+        darkToggle.textContent = '☀️';
+        localStorage.setItem(DARK_KEY, '1');
+      } else {
+        // reset by removing overrides
+        document.documentElement.style.removeProperty('--ivory');
+        document.documentElement.style.removeProperty('--muted');
+        document.documentElement.style.removeProperty('--rose-200');
+        document.documentElement.style.removeProperty('--rose-100');
+        document.documentElement.style.removeProperty('--rose-300');
+        document.documentElement.style.removeProperty('--rose-500');
+        darkToggle.textContent = '🌙';
+        localStorage.removeItem(DARK_KEY);
+      }
+    }
+    // init
+    if(localStorage.getItem(DARK_KEY)) setDarkMode(true);
+    darkToggle.addEventListener('click', ()=> setDarkMode(!localStorage.getItem(DARK_KEY)));
+
+    /* ---------- Mobile menu (hamburger) ---------- */
+    const menuToggle = document.getElementById('menu-toggle');
+    const navlinks = document.getElementById('navlinks');
+    function setupMobile(){
+      if(window.innerWidth < 820){
+        menuToggle.style.display = 'block';
+        navlinks.style.display = 'none';
+      } else {
+        menuToggle.style.display = 'none';
+        navlinks.style.display = 'flex';
+      }
+    }
+    menuToggle.addEventListener('click', ()=>{
+      if(navlinks.style.display === 'none' || navlinks.style.display === '') navlinks.style.display = 'flex';
+      else navlinks.style.display = 'none';
+    });
+    window.addEventListener('resize', setupMobile);
+    setupMobile();
+
+    const hotelFilter = document.getElementById('hotel-filter');
+
+function filterHotels() {
+    const val = hotelFilter.value;
+    const originalCards = document.querySelectorAll(".hotel-card.original-card");
+
+    if (val === 'all') {
+        originalCards.forEach(c => c.style.display = 'flex');
+        return;
+    }
+
+    if (val === 'price-low') {
+        originalCards.forEach(c =>
+            c.style.display = (parseInt(c.dataset.price, 10) <= 6000 ? 'flex' : 'none')
+        );
+    }
+
+    else if (val === 'price-high') {
+        originalCards.forEach(c =>
+            c.style.display = (parseInt(c.dataset.price, 10) > 6000 ? 'flex' : 'none')
+        );
+    }
+
+    else if (val === 'rating-high') {
+        originalCards.forEach(c =>
+            c.style.display = (parseFloat(c.dataset.rating) >= 4.8 ? 'flex' : 'none')
+        );
+    }
+}
+
+if (hotelFilter) {
+    hotelFilter.addEventListener('change', filterHotels);
+}
+
+
+    /* ---------- Animated counters ---------- */
+    function animateValue(el, start, end, duration) {
+      const range = end - start;
+      let startTime = null;
+      function step(timestamp) {
+        if(!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        el.textContent = Math.floor(progress * range + start);
+        if(progress < 1) window.requestAnimationFrame(step);
+        else el.textContent = end;
+      }
+      window.requestAnimationFrame(step);
+    }
+    function animateCounters(){
+      const destCount = document.querySelectorAll('#dest-grid .card').length;
+      const hotelsCount = document.querySelectorAll('#hotels-grid .hotel-card').length;
+      const reviewsCount = document.querySelectorAll('#reviews-wrap .review-card').length;
+      animateValue(document.getElementById('count-dests'), 0, destCount, 900);
+      animateValue(document.getElementById('count-hotels'), 0, hotelsCount, 900);
+      animateValue(document.getElementById('count-reviews'), 0, reviewsCount, 900);
+    }
+
+    /* ---------- Login / Signup ---------- */
+    const authModal = document.getElementById('authModal');
+    const authClose = document.getElementById('authClose');
+    const loginBtn = document.getElementById('loginBtn');
+    const authTitle = document.getElementById('authTitle');
+    const authForms = document.getElementById('authForms');
+    const signupForms = document.getElementById('signupForms');
+    
+    // Function to update login button based on current state
+    function updateLoginButton() {
+      const storedUser = localStorage.getItem('user');
+      const storedUserId = localStorage.getItem('userId');
+      
+      if (storedUser && storedUserId) {
+        try {
+          const user = JSON.parse(storedUser);
+          loginBtn.textContent = user.full_name || user.name || 'Profile';
+          loginBtn.title = 'View your profile';
+        } catch(e) {
+          console.error('Error parsing stored user:', e);
+          loginBtn.textContent = 'Login';
+          loginBtn.title = 'Sign in to your account';
+        }
+      } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.title = 'Sign in to your account';
+      }
+    }
+    
+    // Initialize button on page load
+    updateLoginButton();
+
+    loginBtn.addEventListener('click', ()=> {
+      // Check current login state (always get fresh data from localStorage)
+      const currentUser = localStorage.getItem('user');
+      const currentUserId = localStorage.getItem('userId');
+      
+      if (currentUser && currentUserId) {
+        window.location.href = 'profile.html';
+      } else {
+        openAuth();
+      }
+    });
+    function openAuth(){ authModal.style.display = 'block'; authModal.setAttribute('aria-hidden','false'); authTitle.textContent='Login'; authForms.style.display='flex'; signupForms.style.display='none'; }
+    authClose.addEventListener('click', ()=> closeAuth());
+    function closeAuth(){ authModal.style.display = 'none'; authModal.setAttribute('aria-hidden','true'); }
+
+    document.getElementById('showSignup').addEventListener('click', ()=>{ authTitle.textContent='Sign up'; authForms.style.display='none'; signupForms.style.display='flex'; });
+    document.getElementById('showLogin').addEventListener('click', ()=>{ authTitle.textContent='Login'; authForms.style.display='flex'; signupForms.style.display='none'; });
+
+    document.getElementById('loginSubmit').addEventListener('click', async ()=>{
+      const email = document.getElementById('authEmail').value.trim();
+      const pw = document.getElementById('authPassword').value.trim();
+      
+      if(!email || !pw) return Notify.warning('Please enter both email and password to login.', 'Missing Credentials');
+      
+      try {
+        const loader = Notify.loading('Logging you in...');
+        
+        // Call login API
+        const response = await API.login({ email: email, password: pw });
+        
+        loader.hide();
+        
+        if (response && response.user) {
+          // Store user data in localStorage
+          localStorage.setItem('user', JSON.stringify(response.user));
+          localStorage.setItem('userId', response.user.user_id);
+          
+          closeAuth();
+          
+          // Update the login button
+          updateLoginButton();
+          
+          Notify.success('Welcome back, ' + response.user.full_name + '!', 'Login Successful');
+          
+          // Clear form
+          document.getElementById('authEmail').value = '';
+          document.getElementById('authPassword').value = '';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        Notify.error('Please check your email and password and try again.', 'Login Failed');
+      }
+    });
+
+    document.getElementById('signupSubmit').addEventListener('click', async ()=>{
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const pw = document.getElementById('signupPassword').value.trim();
+      const phone = document.getElementById('signupPhone') ? document.getElementById('signupPhone').value.trim() : '';
+      
+      if(!name || !email || !pw) return Notify.warning('Please fill in all required fields.', 'Missing Information');
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return Notify.warning('Please enter a valid email address (e.g., user@example.com).', 'Invalid Email');
+      }
+      
+      // Password strength check
+      if (pw.length < 6) {
+        return Notify.warning('Password must be at least 6 characters long for security.', 'Weak Password');
+      }
+      
+      try {
+        const loader = Notify.loading('Creating your account...');
+        
+        // Call register API
+        const userData = {
+          full_name: name,
+          email: email,
+          password: pw
+        };
+        
+        if (phone) userData.phone = phone;
+        
+        const response = await API.register(userData);
+        
+        loader.hide();
+        
+        if (response && response.user_id) {
+          Notify.success('Your account has been created! Please login to continue.', 'Account Created');
+          
+          // Switch to login form
+          document.getElementById('authTitle').textContent = 'Login';
+          document.getElementById('authForms').style.display = 'flex';
+          document.getElementById('signupForms').style.display = 'none';
+          
+          // Pre-fill email in login form
+          document.getElementById('authEmail').value = email;
+          
+          // Clear signup form
+          document.getElementById('signupName').value = '';
+          document.getElementById('signupEmail').value = '';
+          document.getElementById('signupPassword').value = '';
+          if (document.getElementById('signupPhone')) {
+            document.getElementById('signupPhone').value = '';
+          }
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        if (error.message && error.message.includes('409')) {
+          Notify.error('This email is already registered. Please use the login form instead.', 'Email Already Exists');
+        } else {
+          Notify.error('Unable to create account. Please try again later.', 'Registration Failed');
+        }
+      }
+    });
+
+    /* ---------- Initializations ---------- */
+    // wire up any existing remove/view buttons (already done in tripList delegation)
+    // ensure any existing modal close when clicking outside
+    AOS.refresh();
+
+    /* ---------- Keep localStorage key compatibility: migrate old keys ---------- */
+    (function migrateOldKeys(){
+      const old = localStorage.getItem('my trips');
+      if(old && !localStorage.getItem(STORAGE_KEY)){
+        localStorage.setItem(STORAGE_KEY, old);
+        localStorage.removeItem('my trips');
+      }
+      updateTripsUI();
+    })();
+
+    /* ---------- Utility: show sidebar if user just added trips via legacy code --- */
+    // (no-op)
+
+
+function openTrip(destinationName) {
+    localStorage.setItem("selectedDestination", destinationName);
+    localStorage.setItem("selectedDate", document.getElementById("tripDate").value);
+    localStorage.setItem("selectedTime", document.getElementById("tripTime").value);
+
+    window.location.href = "trips.html";
+}
+
+// === HOTEL CAROUSEL ARROWS ===
+function setupHotelCarousel() {
+    const scrollBox = document.getElementById("hotels-grid");
+    const gap = 18;
+
+    function getCardWidth() {
+        const firstCard = scrollBox.querySelector(".hotel-card");
+        return firstCard ? firstCard.offsetWidth + gap : 350;
+    }
+
+    // NEXT
+    document.getElementById("hot-next").onclick = () => {
+        scrollBox.scrollBy({
+            left: getCardWidth() * 3,
+            behavior: "smooth"
+        });
+    };
+
+    // PREVIOUS
+    document.getElementById("hot-prev").onclick = () => {
+        scrollBox.scrollBy({
+            left: -getCardWidth() * 3,
+            behavior: "smooth"
+        });
+    };
+}
+
+window.addEventListener("load", setupHotelCarousel);
+
+const API_KEY = "e3e4df74c3feca76fbefe3d97e4f8460"; // your key
+
+function getWeatherEmoji(condition, icon) {
+  condition = condition.toLowerCase();
+
+  // Night check using icon ("n" means night)
+  const isNight = icon.includes("n");
+
+  if (condition.includes("cloud")) return isNight ? "☁️🌙" : "☁️";
+  if (condition.includes("rain")) return isNight ? "🌧️🌙" : "🌧️";
+  if (condition.includes("thunder")) return "⛈️";
+  if (condition.includes("snow")) return "❄️";
+  if (condition.includes("clear")) return isNight ? "🌙" : "☀️";
+  if (condition.includes("wind")) return "💨";
+  if (condition.includes("haze") || condition.includes("fog")) return "🌫️";
+
+  return "🌍"; // default
+}
+
+// FETCH LIVE WEATHER USING OPENWEATHERMAP
+async function fetchLiveWeather(lat, lon) {
+  try {
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.main) return "Weather data unavailable";
+
+    const temp = data.main.temp;
+    const condition = data.weather[0].description;
+    const icon = data.weather[0].icon; 
+
+    const emoji = getWeatherEmoji(condition, icon);
+
+    return `${emoji} ${temp}°C — ${condition}`;
+  } catch (err) {
+    return "Weather fetch error";
+  }
+}
+
+const showModal = document.getElementById("showModal");
+const closeShow = document.getElementById("closeShow");
+
+document.querySelectorAll(".btn-ghost").forEach(btn => {
+  btn.addEventListener("click", function () {
+
+    // Destination data
+    const name = this.dataset.label;
+    const lat = Number(this.dataset.lat);
+const lon = Number(this.dataset.lon);
+
+
+    // Title
+    document.getElementById("show-title").innerText = name;
+
+    // Auto-select image from card
+    const cardImage = this.closest(".card").querySelector("img").src;
+    document.getElementById("show-image").src = cardImage;
+
+  // Get data for destination
+const info = destinationInfo[name];
+
+document.getElementById("show-weather").innerHTML =
+  `<span class="weather-loading"></span> Loading weather...`;
+
+// LIVE WEATHER
+fetchLiveWeather(lat, lon).then(w => {
+ document.getElementById("show-weather").innerHTML = w;
+
+});
+
+
+// Travel tips (list)
+document.getElementById("show-tips").innerHTML =
+  info.tips.map(t => `<li>${t}</li>`).join("");
+
+// Itinerary (list)
+document.getElementById("show-itinerary").innerHTML =
+  info.itinerary.map(i => `<li>${i}</li>`).join("");
+
+    // Show modal
+    showModal.style.display = "block";
+  });
+});
+
+// Close modal
+closeShow.addEventListener("click", () => showModal.style.display = "none");
+window.addEventListener("click", (e) => {
+  if (e.target === showModal) showModal.style.display = "none";
+});
+  </script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="gis-layers.js"></script>
+  <script src="safety-heatmap.js"></script>
+  <script src="story-mode.js"></script>
+  <script src="ai-assistant.js"></script>
+</body>
+</html>

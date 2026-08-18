@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Your Trip Details — Map + Hotels</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root{
+      --rose-100:#fdeef1;
+      --rose-200:#f7d9df;
+      --rose-300:#eebfc9;
+      --rose-500:#b85c72;
+      --ivory:#fffdfd;
+      --muted:#777;
+      --card-shadow:0 10px 24px rgba(184,92,114,.08);
+      --soft-shadow:0 6px 18px rgba(32,32,32,.08);
+    }
+    body{
+      font-family:"Poppins", system-ui;
+      background:var(--ivory);
+      padding:25px 10px;
+      
+    }
+    header{ text-align:center; margin-bottom:20px; }
+    header h1{ font-size:2.1rem; color:var(--rose-500); font-weight:600; }
+
+    .trip-container{ max-width:1100px; margin:0 auto; }
+    .trip-card{ background:#fff; border-radius:22px; padding:30px; box-shadow:var(--card-shadow); }
+
+    .gallery{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+    .gallery img{ width:100%; height:200px; border-radius:14px; object-fit:cover; box-shadow:var(--soft-shadow); transition:.3s; }
+    .gallery img:hover{ transform:scale(1.03); }
+
+    .trip-title{ font-size:2rem; text-align:center; color:var(--rose-500); font-weight:600; margin-bottom:12px; }
+    .trip-details p{ font-size:1.15rem; margin:10px 0; color:#444; }
+
+    .hotels-title{ font-size:1.45rem; margin-top:30px; margin-bottom:15px; color:var(--rose-500); font-weight:600; }
+    .hotel-grid{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+
+    .hotel-card{ background:#fff; border-radius:16px; padding:16px; box-shadow:var(--soft-shadow) }
+    .hotel-card:hover{ transform:translateY(-5px);}
+    .hotel-card h4{ font-size:1.15rem; color:var(--rose-500); margin-bottom:5px; }
+
+    #map{ margin-top:25px; width:100%; height:420px; border-radius:16px; box-shadow:var(--soft-shadow); }
+
+    .back-btn{ display:block; width:fit-content; margin:40px auto 0; background:var(--rose-200); padding:12px 28px; border-radius:28px; color:#2b2b2b; font-weight:600; text-decoration:none; transition:.25s; }
+    .back-btn:hover{ background:var(--rose-500); color:white; transform:translateY(-3px); }
+
+
+    .book-btn{
+    margin-top:10px;
+    padding:10px 20px;
+    border:none;
+    border-radius:25px;
+    background:var(--rose-200);
+    color:#2b2b2b;
+    font-weight:600;
+    cursor:pointer;
+    transition:.25s;
+    width:100%;
+}
+.book-btn:hover{
+    background:var(--rose-500);
+    color:white;
+    transform:translateY(-3px);
+}
+
+  </style>
+</head>
+<body>
+
+<header><h1>Your Trip Details</h1></header>
+<div id="tripContainer" class="trip-container"></div>
+
+<a href="front end code.html" class="back-btn">← Back to Home</a>
+
+
+
+<script src="notification-system.js"></script>
+<script src="api-config.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================
+   Destination coordinates
+   ============================ */
+const coordinates = {
+  "Hunza Valley": { lat: 36.3167, lng: 74.65 },
+  "Skardu": { lat: 35.297, lng: 75.639 },
+  "Lahore": { lat: 31.5204, lng: 74.3587 },
+  "Karachi": { lat: 24.8607, lng: 67.0011 },
+  "Islamabad": { lat: 33.6844, lng: 73.0479 },
+  "Murree": { lat: 33.907, lng: 73.3903 },
+  "Margalla Hills": { lat: 33.75, lng: 73.08 },
+  "Swat Valley": { lat: 35.222, lng: 72.425 },
+  "Mohenjo Daro": { lat: 27.328, lng: 68.138 },
+  "Fairy Meadows": { lat: 35.376, lng: 74.578 },
+  "K2 Base Camp": { lat: 35.8825, lng: 76.5133 },
+  "Makli Necropolis": { lat: 24.747, lng: 67.911 },
+  "Ratti Gali Lake": { lat: 34.843, lng: 73.842 },
+  "Deosai National Park": { lat: 34.996, lng: 75.342 },
+  "Naltar Valley": { lat: 36.190, lng: 74.149 },
+  "Shogran & Siri Paye": { lat: 34.630, lng: 73.496 },
+  "Khaplu": { lat: 35.155, lng: 76.333 },
+  "Passu Cones": { lat: 36.5, lng: 74.89 }
+};
+
+const hotelCoords = {
+  "Hunza Valley": [
+    { name: "Hunza Valley Lodge", lat: 36.318, lng: 74.651 },
+    { name: "Eagle’s Nest Hotel Hunza", lat: 36.31, lng: 74.655 },
+    { name: "Luxus Hunza Attabad Resort", lat: 36.46, lng: 74.805 }
+  ],
+  "Skardu": [
+    { name: "Skardu Lakeside Resort", lat: 35.295, lng: 75.64 },
+    { name: "Shangrila Resort Skardu", lat: 35.287, lng: 75.622 }
+  ],
+  "Lahore": [
+    { name: "Serena Hotel Lahore", lat: 31.49, lng: 74.36 }
+  ],
+  "Karachi": [
+    { name: "PC Karachi", lat: 24.85, lng: 67.02 },
+    { name: "Marriott Karachi", lat: 24.86, lng: 67.03 }
+  ],
+  "Islamabad": [
+    { name: "Faisal Mosque Boutique Hotel", lat: 33.73, lng: 73.03 }
+  ],
+  "Murree": [
+    { name: "Hotel One Murree", lat: 33.90, lng: 73.39 }
+  ],
+  "Margalla Hills": [
+    { name: "Serena Hotel Islamabad", lat: 33.71, lng: 73.09 }
+  ],
+  "Swat Valley": [
+    { name: "Swat Highland Resort", lat: 35.20, lng: 72.42 },
+    { name: "Malam Jabba Resort", lat: 34.81, lng: 72.57 }
+  ]
+};
+
+/* destination images (paths must exist or replace them) */
+const destinationImages = {
+  "Hunza Valley": ["Images/hunza1.jpg", "Images/hunza3.jpg", "Images/hunza4.jpg"],
+  "Skardu": ["Images/skardu2.jpg", "Images/skardu3.jpg", "Images/skardu5.jpg"],
+  "Lahore": ["Images/lahore3.jpg", "Images/lahore1.avif", "Images/lahore4.jpg"],
+  "Karachi": ["Images/karachi2.jpg", "Images/karachi3.jpg", "Images/karachi4.jpg"],
+  "Islamabad": ["Images/islamabad9.webp", "Images/islamabad5.jpg", "Images/islamabad01.avif"],
+  "Murree": ["Images/murree3.jpg", "Images/murree4.jpg", "Images/murree1.avif"],
+  "Margalla Hills": ["Images/margalla_hills3.jpg", "Images/margalla_hills4.jpg", "Images/margalla_hills5.jpg"],
+  "Swat Valley": ["Images/swat2.jpg", "Images/swat3.jpg", "Images/swat4.jpg"],
+  "Mohenjo Daro": ["Images/mohenjo_daro1.avif","Images/mohenjo_daro2.jpg","Images/mohenjo_daro5.jpg"],
+  "Fairy Meadows": ["Images/fairy_meadows2.jpg","Images/fairy_meadows3.jpg","Images/fairy_meadows4.jpg"],
+  "K2 Base Camp": ["Images/k22.jpg","Images/k23.jpg","Images/k24.jpg"],
+  "Makli Necropolis": ["Images/makli1.jpg","Images/makli2.jpg","Images/makli3.jpg"],
+  "Ratti Gali Lake": ["Images/ratti2.jpg","Images/ratti3.jpg","Images/ratti4.jpg"],
+  "Deosai National Park": ["Images/deosai2.jpg","Images/deosai3.jpg","Images/deosai4.jpg"],
+  "Naltar Valley": ["Images/naltar2.jpg","Images/naltar3.jpg","Images/naltar4.jpg"],
+  "Shogran & Siri Paye": ["Images/shogran2.jpg","Images/shogran3.jpg","Images/shogran4.jpg"],
+  "Khaplu": ["Images/khaplu1.webp","Images/khaplu.jpeg","Images/khaplu5.jpeg"],
+  "Passu Cones": ["Images/passu4.jpg","Images/passu2.jpg","Images/passu5.jpg"]
+};
+
+/* hotel database (main source of cards) */
+const hotelDatabase = {
+  "Hunza Valley":[
+    {name:"Hunza Valley Lodge", price:5900, rating:4.7},
+    {name:"Eagle’s Nest Hotel Hunza", price:6500, rating:4.6},
+    {name:"Luxus Hunza Attabad Resort", price:9500, rating:4.8}
+  ],
+  "Skardu":[
+    {name:"Skardu Lakeside Resort", price:8500, rating:4.9},
+    {name:"Shangrila Resort Skardu", price:11000, rating:4.9}
+  ],
+  "Lahore":[ {name:"Serena Hotel Lahore", price:7200, rating:4.8} ],
+  "Karachi":[ { name: "PC Karachi", price: 12500, rating: 4.6 }, { name: "Marriott Karachi", price: 25000, rating: 4.7 } ],
+  "Islamabad":[ {name:"Faisal Mosque Boutique Hotel", price:5200, rating:4.5} ],
+  "Murree":[ { name: "Hotel One Murree", price: 6500, rating: 4.5 } ],
+  "Margalla Hills":[ { name: "Serena Hotel Islamabad", price: 14500, rating: 4.7 } ],
+  "Swat Valley":[ { name: "Swat Highland Resort", price: 7200, rating: 4.7 }, { name: "Malam Jabba Resort (Malam Jabba)", price: 6800, rating: 4.6 } ],
+  "Mohenjo Daro":[],
+  "Fairy Meadows":[ {name:"Fairy Meadows Wooden Cottages", price:7000, rating:4.7} ],
+  "K2 Base Camp":[ { name: "Shangrila Resort Skardu", price: 11000, rating: 4.9 } ],
+  "Makli Necropolis":[ {name:"Makli Heritage Guest House", price:4300, rating:4.2} ],
+  "Ratti Gali Lake":[ {name:"Ratti Gali Lake Camps", price:3500, rating:4.3} ],
+  "Deosai National Park":[ {name:"Deosai Plains Wilderness Camp", price:6900, rating:4.5} ],
+  "Naltar Valley":[ {name:"Naltar Snow Lodge", price:6200, rating:4.6} ],
+  "Shogran & Siri Paye":[ {name:"Shogran Mountain Resort", price:6200, rating:4.6} ],
+  "Khaplu":[ { name: "Serena Shigar Fort", price: 8500, rating: 4.7 } ],
+  "Passu Cones":[ { name: "Passu View Lodge", price: 7800, rating: 4.6 } ]
+};
+
+/* RANDOM POINT GENERATOR */
+function randomPointAround(lat, lng, r = 0.6){
+  const rd = r/111.32;
+  const u = Math.random(), v = Math.random();
+  const w = rd * Math.sqrt(u);
+  const t = 2 * Math.PI * v;
+  const dx = w * Math.cos(t), dy = w * Math.sin(t);
+  return { lat: lat + dy, lng: lng + dx / Math.cos(lat*Math.PI/180) };
+}
+
+/* ============================
+   Load trip from backend or localStorage
+============================ */
+async function loadTripData() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tripId = urlParams.get('id');
+  
+  try {
+    // If trip ID in URL, fetch from backend
+    if (tripId) {
+      const loader = Notify.loading('Loading trip details...');
+      const trip = await API.getTrip(tripId);
+      loader.hide();
+      
+      if (trip) {
+        return {
+          trip_id: trip.trip_id,
+          destination: trip.destination_name,
+          date: trip.trip_date || 'Not specified',
+          time: trip.trip_time || 'Not specified',
+          description: trip.description || 'No description provided',
+          selected_hotels: trip.selected_hotels || []
+        };
+      }
+    }
+    
+    // Fallback to localStorage
+    const stored = localStorage.getItem("currentTrip");
+    if (stored) {
+      const trip = JSON.parse(stored);
+      return {
+        destination: trip.destination,
+        date: trip.date,
+        time: trip.time,
+        description: trip.description || `Trip to ${trip.destination}`,
+        selected_hotels: []
+      };
+    }
+    
+    // If no trip found, show error
+    throw new Error('No trip data found');
+    
+  } catch (error) {
+    console.error('Error loading trip:', error);
+    Notify.error('Unable to load trip. Redirecting to home...', 'Error');
+    setTimeout(() => {
+      window.location.href = 'front end code.html';
+    }, 2000);
+    return null;
+  }
+}
+
+/* ============================
+   Render trip details
+============================ */
+async function renderTrip() {
+  const tripData = await loadTripData();
+  if (!tripData) return;
+  
+  const box = document.getElementById("tripContainer");
+  const destKey = tripData.destination;
+  const imgs = destinationImages[destKey] || [];
+  
+  // Fetch hotels for this destination from backend
+  let hotels = [];
+  try {
+    const allHotels = await API.getHotels();
+    hotels = allHotels.filter(h => 
+      h.destination_name && h.destination_name.toLowerCase() === destKey.toLowerCase()
+    );
+    
+    // If trip has selected hotels, prioritize those
+    if (tripData.selected_hotels && tripData.selected_hotels.length > 0) {
+      hotels = tripData.selected_hotels;
+    }
+  } catch (error) {
+    console.error('Error loading hotels:', error);
+  }
+
+  box.innerHTML = `
+    <div class="trip-card">
+
+      <div class="gallery">
+        ${
+          imgs.length
+          ? imgs.map(src => `<img src="${src}" alt="${destKey}">`).join("")
+          : `<div style="grid-column:1/-1;text-align:center;color:var(--muted)">No images</div>`
+        }
+      </div>
+
+      <h2 class="trip-title">${tripData.destination}</h2>
+
+      <div class="trip-details">
+        <p><strong>Date:</strong> ${tripData.date}</p>
+        <p><strong>Time:</strong> ${tripData.time}</p>
+        <p><strong>Description:</strong> ${tripData.description}</p>
+      </div>
+
+      <h3 class="hotels-title">${tripData.selected_hotels && tripData.selected_hotels.length > 0 ? 'Selected Hotels' : 'Available Hotels'}</h3>
+      <div class="hotel-grid" id="hotelGrid">
+        ${hotels.length
+          ? hotels.map((h)=>`
+            <div class="hotel-card">
+              <h4>${h.hotel_name || h.name}</h4>
+              <p><strong>Price:</strong> PKR ${parseFloat(h.price || 0).toLocaleString()}/night</p>
+              <p><strong>Rating:</strong> ★ ${h.rating || 'N/A'}</p>
+              <button class="book-btn" onclick="bookHotel('${h.hotel_id || ''}', '${(h.hotel_name || h.name || '').replace(/'/g, "\\'")}'', '${h.price || 0}', '${h.rating || 0}')">
+                Book Now
+              </button>
+            </div>
+          `).join("")
+          : `<p style="color:var(--muted)">No hotels available for this destination.</p>`
+        }
+
+
+
+      </div>
+
+      <div id="map"></div>
+    </div>
+  `;
+
+  /* MAP INIT */
+  const destCoords = coordinates[destKey];
+  if (destCoords) {
+    const map = L.map("map").setView([destCoords.lat, destCoords.lng], 11);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    L.marker([destCoords.lat, destCoords.lng]).addTo(map)
+      .bindPopup(`<b>${destKey}</b>`);
+
+    // Add hotel markers
+    const markers = [];
+    hotels.forEach((hotel)=>{
+      const lat = parseFloat(hotel.latitude) || destCoords.lat + (Math.random() - 0.5) * 0.05;
+      const lng = parseFloat(hotel.longitude) || destCoords.lng + (Math.random() - 0.5) * 0.05;
+      
+      const mk = L.marker([lat, lng]).addTo(map)
+        .bindPopup(`<b>${hotel.hotel_name || hotel.name}</b><br>Price: PKR ${parseFloat(hotel.price || 0).toLocaleString()}/night<br>Rating: ★ ${hotel.rating || 'N/A'}`);
+      markers.push(mk);
+    });
+
+    // Fit bounds if we have hotels
+    if (markers.length > 0) {
+      const group = new L.featureGroup([
+        L.marker([destCoords.lat, destCoords.lng]),
+        ...markers
+      ]);
+      map.fitBounds(group.getBounds().pad(0.25));
+    }
+  }
+}
+
+
+
+/* ============================
+   Book hotel
+============================ */
+function bookHotel(id, name, price, rating) {
+  const hotel = {
+    id: id,
+    name: name,
+    price: price,
+    rating: rating
+  };
+  localStorage.setItem("selectedHotel", JSON.stringify(hotel));
+  window.location.href = `hotel bookings.html?hotel=${encodeURIComponent(name)}&id=${id}`;
+}
+
+/* ============================
+   Initialize
+============================ */
+window.addEventListener('load', renderTrip);
+
+</script>
+</body>
+</html>

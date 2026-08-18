@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Destination Details - Explore Pakistan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --rose-100: #fdeef1;
+      --rose-200: #f7d9df;
+      --rose-300: #eebfc9;
+      --rose-500: #b85c72;
+      --ivory: #fffdfd;
+      --muted: #6a6a6a;
+      --card-shadow: 0 8px 20px rgba(184,92,114,0.06);
+      --soft-shadow: 0 6px 18px rgba(32,32,32,0.05);
+      --nav-height: 68px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Poppins", system-ui, -apple-system, sans-serif;
+      background: var(--ivory);
+      color: #333;
+      line-height: 1.6;
+      padding-top: var(--nav-height);
+    }
+
+    /* NAVBAR - Same as front end */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 36px;
+      background: rgba(239, 187, 187, 0.85);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid rgba(184,92,114,0.04);
+      z-index: 1200;
+    }
+
+    nav .brand {
+      color: var(--rose-500);
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    nav .navlinks {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+
+    nav .navlinks a {
+      color: #444;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 8px;
+      border-radius: 8px;
+    }
+
+    nav .navlinks a:hover {
+      color: #fff;
+      background: var(--rose-300);
+    }
+
+    .btn-primary {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      background: var(--rose-200);
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.18s;
+      color: #2b2b2b;
+    }
+
+    .btn-primary:hover {
+      background: var(--rose-500);
+      color: #fff;
+      transform: translateY(-3px);
+    }
+
+    .btn-ghost {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--rose-200);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.22s ease;
+      color: var(--rose-500);
+    }
+
+    .btn-ghost:hover {
+      background: var(--rose-500);
+      color: #fff;
+      transform: translateY(-3px);
+      border-color: var(--rose-500);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    /* Hero Section */
+    .destination-hero {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 40px;
+    }
+
+    .hero-image-gallery {
+      position: relative;
+      height: 400px;
+      overflow: hidden;
+    }
+
+    .hero-image-gallery img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .hero-image-gallery img.active {
+      display: block;
+    }
+
+    .gallery-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .gallery-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--rose-200);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .gallery-dot.active {
+      background: var(--rose-500);
+      transform: scale(1.3);
+    }
+
+    .gallery-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--rose-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .gallery-arrow:hover {
+      background: var(--rose-500);
+      color: white;
+    }
+
+    .gallery-arrow.left {
+      left: 20px;
+    }
+
+    .gallery-arrow.right {
+      right: 20px;
+    }
+
+    .destination-info {
+      padding: 30px;
+    }
+
+    .destination-title {
+      font-size: 2.2rem;
+      color: var(--rose-500);
+      margin-bottom: 10px;
+    }
+
+    .destination-description {
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+
+    .destination-meta {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      padding: 20px 0;
+      border-top: 1px solid var(--rose-200);
+      border-bottom: 1px solid var(--rose-200);
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .meta-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--rose-500);
+    }
+
+    /* Weather Section */
+    .weather-section {
+      background: linear-gradient(135deg, var(--rose-100) 0%, white 100%);
+      padding: 25px;
+      border-radius: 16px;
+      margin: 30px 0;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .weather-section h3 {
+      color: var(--rose-500);
+      margin-bottom: 15px;
+      font-size: 1.4rem;
+    }
+
+    .weather-info {
+      font-size: 1.2rem;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .weather-loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #ccc;
+      border-top-color: var(--rose-500);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hotels Section */
+    .section {
+      margin: 50px 0;
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      color: var(--rose-500);
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .hotels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+    }
+
+    .hotel-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--soft-shadow);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .hotel-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 36px rgba(120,60,80,0.12);
+    }
+
+    .hotel-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .hotel-body {
+      padding: 20px;
+    }
+
+    .hotel-name {
+      color: var(--rose-500);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .hotel-price {
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .hotel-rating {
+      display: inline-block;
+      background: linear-gradient(90deg, #fff4f6, #fff);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      color: var(--rose-500);
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    /* Map Section */
+    #destination-map {
+      height: 400px;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+      margin-top: 30px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state h3 {
+      color: var(--rose-500);
+      margin-bottom: 10px;
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border: 5px solid var(--rose-200);
+      border-top-color: var(--rose-500);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        padding: 12px 20px;
+      }
+
+      .destination-title {
+        font-size: 1.8rem;
+      }
+
+      .hero-image-gallery {
+        height: 250px;
+      }
+
+      .hotels-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .destination-meta {
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div class="brand">Explore Pakistan</div>
+    </div>
+
+    <div class="navlinks">
+      <a href="front end code.html">Home</a>
+      <a href="hotel bookings.html">Book Hotel</a>
+      <a href="profile.html">Profile</a>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container">
+    
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-state">
+      <div class="spinner"></div>
+      <p class="muted" style="margin-top: 20px;">Loading destination details...</p>
+    </div>
+
+    <!-- Destination Hero -->
+    <div id="destinationHero" class="destination-hero" style="display: none;">
+      <div class="hero-image-gallery" id="imageGallery">
+        <!-- Images will be loaded here -->
+        <button class="gallery-arrow left" onclick="changeImage(-1)">◀</button>
+        <button class="gallery-arrow right" onclick="changeImage(1)">▶</button>
+        <div class="gallery-controls" id="galleryDots">
+          <!-- Dots will be added here -->
+        </div>
+      </div>
+
+      <div class="destination-info">
+        <h1 class="destination-title" id="destName">Destination Name</h1>
+        <p class="destination-description" id="destDescription"></p>
+
+        <div class="destination-meta" id="destMeta">
+          <!-- Meta info will be added here -->
+        </div>
+
+        <!-- Weather Section -->
+        <div class="weather-section">
+          <h3>Current Weather</h3>
+          <div class="weather-info" id="weatherInfo">
+            <span class="weather-loading"></span> Loading weather data...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hotels Section -->
+    <div id="hotelsSection" class="section" style="display: none;">
+      <h2 class="section-title">Hotels in <span id="hotelDestName"></span></h2>
+      <div class="hotels-grid" id="hotelsGrid">
+        <!-- Hotels will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Map Section -->
+    <div id="mapSection" class="section" style="display: none;">
+      <h2 class="section-title">Location on Map</h2>
+      <div id="destination-map"></div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="notification-system.js"></script>
+  <script src="api-config.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const API_KEY = "e3e4df74c3feca76fbefe3d97e4f8460";
+    let currentImageIndex = 0;
+    let destinationImages = [];
+    let currentDestination = null;
+
+    // Get destination from URL parameter or localStorage
+    function getDestinationName() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlDest = urlParams.get('destination');
+      if (urlDest) {
+        localStorage.setItem('currentDestination', urlDest);
+        return urlDest;
+      }
+      return localStorage.getItem('currentDestination');
+    }
+
+    // Fetch weather data
+    async function fetchWeather(lat, lon) {
+      try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.main) return "Weather data unavailable";
+
+        const temp = Math.round(data.main.temp);
+        const condition = data.weather[0].description;
+        const icon = data.weather[0].icon;
+        
+        const emoji = getWeatherEmoji(condition, icon);
+        return `${emoji} ${temp}°C — ${condition}`;
+      } catch (error) {
+        console.error('Weather fetch error:', error);
+        return "Weather data unavailable";
+      }
+    }
+
+    function getWeatherEmoji(condition, icon) {
+      condition = condition.toLowerCase();
+      const isNight = icon.includes("n");
+
+      if (condition.includes("cloud")) return isNight ? "☁️🌙" : "☁️";
+      if (condition.includes("rain")) return isNight ? "🌧️🌙" : "🌧️";
+      if (condition.includes("thunder")) return "⛈️";
+      if (condition.includes("snow")) return "❄️";
+      if (condition.includes("clear")) return isNight ? "🌙" : "☀️";
+      if (condition.includes("wind")) return "💨";
+      if (condition.includes("haze") || condition.includes("fog")) return "🌫️";
+
+      return "🌍";
+    }
+
+    // Image gallery functions
+    function changeImage(direction) {
+      if (destinationImages.length === 0) return;
+      
+      const images = document.querySelectorAll('#imageGallery img');
+      const dots = document.querySelectorAll('.gallery-dot');
+      
+      images[currentImageIndex].classList.remove('active');
+      dots[currentImageIndex].classList.remove('active');
+      
+      currentImageIndex += direction;
+      if (currentImageIndex >= destinationImages.length) currentImageIndex = 0;
+      if (currentImageIndex < 0) currentImageIndex = destinationImages.length - 1;
+      
+      images[currentImageIndex].classList.add('active');
+      dots[currentImageIndex].classList.add('active');
+    }
+
+    function goToImage(index) {
+      const images = document.querySelectorAll('#imageGallery img');
+      const dots = document.querySelectorAll('.gallery-dot');
+      
+      images[currentImageIndex].classList.remove('active');
+      dots[currentImageIndex].classList.remove('active');
+      
+      currentImageIndex = index;
+      
+      images[currentImageIndex].classList.add('active');
+      dots[currentImageIndex].classList.add('active');
+    }
+
+    // Initialize map
+    function initMap(lat, lon, name) {
+      // Ensure map section is visible first
+      document.getElementById('mapSection').style.display = 'block';
+      
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const mapElement = document.getElementById('destination-map');
+        
+        // Clear any existing map
+        if (mapElement._leaflet_id) {
+          mapElement._leaflet_id = null;
+          mapElement.innerHTML = '';
+        }
+        
+        const map = L.map('destination-map').setView([lat, lon], 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 18
+        }).addTo(map);
+
+        L.marker([lat, lon]).addTo(map)
+          .bindPopup(`<b>${name}</b>`)
+          .openPopup();
+        
+        // Force map to recalculate size
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
+      }, 100);
+    }
+
+    // Load destination details
+    async function loadDestinationDetails() {
+      const destinationName = getDestinationName();
+      
+      if (!destinationName) {
+        document.getElementById('loadingState').innerHTML = `
+          <div class="empty-state">
+            <h3>No Destination Selected</h3>
+            <p>Please select a destination from the home page.</p>
+            <a href="front end code.html" class="btn-primary" style="display: inline-block; margin-top: 20px; text-decoration: none;">Go to Home</a>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        // Fetch all destinations
+        const destinations = await API.getDestinations();
+        const destination = destinations.find(d => 
+          d.name.toLowerCase() === destinationName.toLowerCase()
+        );
+
+        if (!destination) {
+          throw new Error('Destination not found');
+        }
+
+        currentDestination = destination;
+
+        // Set up images
+        destinationImages = destination.images || [];
+        if (destinationImages.length === 0) {
+          destinationImages = ['Images/placeholder.jpg'];
+        }
+
+        const galleryHTML = destinationImages.map((img, index) => 
+          `<img src="${img}" alt="${destination.name}" class="${index === 0 ? 'active' : ''}">`
+        ).join('');
+
+        document.getElementById('imageGallery').innerHTML = `
+          ${galleryHTML}
+          ${destinationImages.length > 1 ? `
+            <button class="gallery-arrow left" onclick="changeImage(-1)">◀</button>
+            <button class="gallery-arrow right" onclick="changeImage(1)">▶</button>
+            <div class="gallery-controls" id="galleryDots"></div>
+          ` : ''}
+        `;
+
+        // Add dots if multiple images
+        if (destinationImages.length > 1) {
+          const dotsHTML = destinationImages.map((_, index) => 
+            `<div class="gallery-dot ${index === 0 ? 'active' : ''}" onclick="goToImage(${index})"></div>`
+          ).join('');
+          document.getElementById('galleryDots').innerHTML = dotsHTML;
+        }
+
+        // Set destination info
+        document.getElementById('destName').textContent = destination.name;
+        document.getElementById('destDescription').textContent = destination.description || 'A beautiful destination in Pakistan.';
+        document.getElementById('hotelDestName').textContent = destination.name;
+
+        // Set meta info
+        const metaHTML = `
+          ${destination.province ? `
+            <div class="meta-item">
+              <span class="meta-label">Province</span>
+              <span class="meta-value">${destination.province}</span>
+            </div>
+          ` : ''}
+          ${destination.latitude && destination.longitude ? `
+            <div class="meta-item">
+              <span class="meta-label">Coordinates</span>
+              <span class="meta-value">${parseFloat(destination.latitude).toFixed(4)}, ${parseFloat(destination.longitude).toFixed(4)}</span>
+            </div>
+          ` : ''}
+        `;
+        document.getElementById('destMeta').innerHTML = metaHTML;
+
+        // Load weather
+        if (destination.latitude && destination.longitude) {
+          const lat = parseFloat(destination.latitude);
+          const lon = parseFloat(destination.longitude);
+          const weather = await fetchWeather(lat, lon);
+          document.getElementById('weatherInfo').innerHTML = weather;
+        }
+
+        // Show content first
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('destinationHero').style.display = 'block';
+        document.getElementById('hotelsSection').style.display = 'block';
+
+        // Initialize map after content is visible
+        if (destination.latitude && destination.longitude) {
+          const lat = parseFloat(destination.latitude);
+          const lon = parseFloat(destination.longitude);
+          initMap(lat, lon, destination.name);
+        }
+
+        // Load hotels for this destination
+        await loadHotels(destination.name);
+
+      } catch (error) {
+        console.error('Error loading destination:', error);
+        document.getElementById('loadingState').innerHTML = `
+          <div class="empty-state">
+            <h3>Error Loading Destination</h3>
+            <p>${error.message}</p>
+            <a href="front end code.html" class="btn-primary" style="display: inline-block; margin-top: 20px; text-decoration: none;">Go to Home</a>
+          </div>
+        `;
+      }
+    }
+
+    // Load hotels for this destination
+    async function loadHotels(destinationName) {
+      try {
+        let hotels;
+        
+        // Use the efficient API call to get hotels by destination ID
+        if (currentDestination && currentDestination.destination_id) {
+          hotels = await API.getDestinationHotels(currentDestination.destination_id);
+        } else {
+          // Fallback: filter all hotels by name if destination_id not available
+          const allHotels = await API.getHotels();
+          hotels = allHotels.filter(h => 
+            h.destination && h.destination.toLowerCase() === destinationName.toLowerCase()
+          );
+        }
+
+        const hotelsGrid = document.getElementById('hotelsGrid');
+
+        if (hotels.length === 0) {
+          hotelsGrid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1;">
+              <h3>No Hotels Available</h3>
+              <p>There are currently no hotels listed for this destination.</p>
+            </div>
+          `;
+          return;
+        }
+
+        hotelsGrid.innerHTML = hotels.map(hotel => `
+          <div class="hotel-card" data-hotel-id="${hotel.hotel_id}">
+            <img src="${(hotel.images && hotel.images[0]) || hotel.image || 'Images/placeholder.jpg'}" alt="${hotel.hotel_name}" class="hotel-image">
+            <div class="hotel-body">
+              <h3 class="hotel-name">${hotel.hotel_name}</h3>
+              <p class="hotel-price">From PKR ${parseFloat(hotel.price || hotel.price_per_night || 0).toLocaleString()} / night</p>
+              <span class="hotel-rating">★ ${hotel.rating || 'N/A'}</span>
+              <button class="btn-primary" onclick="bookHotel('${hotel.hotel_id}', '${hotel.hotel_name}', '${hotel.price || hotel.price_per_night}', '${hotel.rating}', '${(hotel.images && hotel.images[0]) || hotel.image || ''}', '${destinationName}')">Book Now</button>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+        document.getElementById('hotelsGrid').innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <h3>Error Loading Hotels</h3>
+            <p>Failed to load hotels. Please try again later.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Book hotel function
+    function bookHotel(id, name, price, rating, image, destination) {
+      const hotel = {
+        id: id,
+        hotel_id: id,          // store both so hotel bookings.html always finds it
+        name: name,
+        price: parseFloat(price) || 0,
+        rating: parseFloat(rating) || 0,
+        image: image,
+        destination: destination
+      };
+      localStorage.setItem('selectedHotel', JSON.stringify(hotel));
+      window.location.href = `hotel bookings.html?hotel=${encodeURIComponent(name)}&id=${id}`;
+    }
+
+    // Initialize on page load
+    window.addEventListener('load', loadDestinationDetails);
+
+    // Auto-advance images every 5 seconds
+    setInterval(() => {
+      if (destinationImages.length > 1) {
+        changeImage(1);
+      }
+    }, 5000);
+  </script>
+
+</body>
+</html>

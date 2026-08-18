@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hotel Booking — Explore Pakistan</title>
+  
+  <!-- API Configuration -->
+  <script src="api-config.js"></script>
+  
+  <!-- jQuery (for AJAX + DOM convenience) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <style>
+    :root{
+      --rose-100:#fdeef1;
+      --rose-200:#f7d9df;
+      --rose-300:#eebfc9;
+      --rose-500:#b85c72;
+      --ivory:#fffdfd;
+      --muted:#6a6a6a;
+      --card-shadow:0 8px 20px rgba(184,92,114,0.06);
+      --soft-shadow:0 6px 18px rgba(32,32,32,0.05);
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family:"Poppins", system-ui, Arial;
+      background:var(--ivory);
+      color:#222;
+      padding:28px;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .wrap { max-width:980px; margin:0 auto; display:grid; gap:18px; grid-template-columns: 1fr 360px; align-items:start; }
+    @media(max-width:980px){ .wrap{ grid-template-columns:1fr } }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+    }
+
+    header.card {
+      grid-column: 1/-1;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-content:space-between;
+    }
+
+    .brand { color:var(--rose-500); font-weight:700; font-size:1.1rem; }
+    .sub { color:var(--muted); font-weight:500 }
+
+    .hotel-hero { display:flex; gap:14px; align-items:flex-start; }
+    .hotel-thumb { width:220px; height:140px; border-radius:12px; overflow:hidden; flex-shrink:0; box-shadow:var(--soft-shadow) }
+    .hotel-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+    .hotel-meta h2{ color:var(--rose-500); margin:0 0 6px; font-size:1.35rem }
+    .hotel-meta .price { font-weight:700; color:#2b2b2b }
+    .hotel-meta .rating { display:inline-block; margin-left:8px; color:var(--rose-500); font-weight:700 }
+
+    .gallery { display:flex; gap:8px; margin-top:12px; }
+    .gallery img { width:64px; height:48px; object-fit:cover; border-radius:8px; cursor:pointer; transition:transform .18s }
+    .gallery img:hover{ transform:scale(1.06) }
+
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px }
+    @media(max-width:640px){ .form-row{ grid-template-columns:1fr } }
+
+    label { display:block; font-weight:600; color:var(--rose-500); margin-bottom:6px; font-size:0.92rem }
+    input[type="text"], input[type="email"], input[type="date"], input[type="time"], select, input[type="number"] {
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(184,92,114,0.08); background:#fff; outline:none; font-family:inherit;
+    }
+    .btn {
+      display:inline-block; padding:10px 18px; border-radius:999px; border:none; cursor:pointer; font-weight:700;
+    }
+    .btn-primary { background:var(--rose-300); color:#2b2b2b }
+    .btn-primary:hover{ background:linear-gradient(45deg,#b85c72,#eebfc9); color:#fff }
+    .btn-ghost { background:transparent; border:1px solid rgba(184,92,114,0.12); color:var(--rose-500) }
+
+    .preview { margin-top:12px; padding:12px; border-radius:10px; background:#fff7fa; border:1px solid rgba(184,92,114,0.08) }
+
+    .side { display:flex; flex-direction:column; gap:12px; position:sticky; top:28px }
+    .summary { padding:14px; border-radius:12px; background:linear-gradient(180deg, rgba(255,244,246,1), rgba(255, 247, 249,1)); box-shadow:var(--soft-shadow) }
+
+    .small { font-size:0.92rem; color:var(--muted) }
+
+    .loading {
+      width:18px; height:18px; border-radius:50%;
+      border:3px solid rgba(184,92,114,0.15); border-top-color:var(--rose-500);
+      animation:spin .7s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px;
+    }
+
+    @keyframes spin{ to{transform:rotate(360deg)} }
+
+    .bookings-list { max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-top:6px }
+    .booking-item { background:white; padding:8px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(184,92,114,0.05) }
+
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); justify-content:center; align-items:center; z-index:4000 }
+    .modal.show { display:flex }
+    .modal-card { background:var(--ivory); border-radius:14px; padding:20px; width:380px; box-shadow:var(--card-shadow); text-align:center }
+    .tiny { font-size:0.86rem; color:var(--muted) }
+
+    .note { margin-top:10px; font-size:0.9rem; color:var(--muted) }
+    .hr { height:1px; background:rgba(184,92,114,0.06); margin:12px 0; border-radius:2px }
+
+    /* responsive image preview */
+    .large-preview { width:100%; height:260px; object-fit:cover; border-radius:12px; box-shadow:var(--soft-shadow) }
+
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <header class="card">
+      <div>
+        <div class="brand">Explore Pakistan — Hotel Booking</div>
+        <div class="sub tiny">Dynamic booking system — connected to backend API</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="profile.html" class="btn btn-ghost" style="text-decoration:none" id="profileLink">👤 My Profile</a>
+        <a href="front end code.html" class="btn btn-primary" style="text-decoration:none">Back to Explore</a>
+      </div>
+    </header>
+
+    <!-- left: booking form & details -->
+    <section class="card" id="mainCard">
+      <div id="heroArea" class="hotel-hero">
+        <div class="hotel-thumb"><img id="heroImage" src="https://via.placeholder.com/480x260.png?text=Hotel" alt="hotel"></div>
+        <div class="hotel-meta">
+          <h2 id="hotelTitle">Loading hotel…</h2>
+          <div class="price small"><span id="hotelPrice">—</span><span class="rating" id="hotelRating"></span></div>
+
+          <div class="gallery" id="hotelGallery"></div>
+
+          <div class="note" id="dataSourceInfo">Data source: <span id="dataSource">local (fallback)</span></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <form id="bookingForm" autocomplete="off">
+        <div class="form-row">
+          <div>
+            <label for="fullName">Full name</label>
+            <input id="fullName" type="text" placeholder="Your full name" required>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@domain.com" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="checkIn">Check-in</label>
+            <input id="checkIn" type="date" required>
+          </div>
+          <div>
+            <label for="checkOut">Check-out</label>
+            <input id="checkOut" type="date" required>
+          </div>
+        </div>
+
+        <div class="form-row" style="align-items:end">
+          <div>
+            <label for="guests">Guests</label>
+            <select id="guests">
+              <option value="1">1 Guest</option>
+              <option value="2">2 Guests</option>
+              <option value="3">3 Guests</option>
+              <option value="4">4 Guests</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="rooms">Rooms</label>
+            <input id="rooms" type="number" min="1" value="1">
+          </div>
+        </div>
+
+        <div class="preview" id="pricePreview">
+          <div><strong>Total:</strong> <span id="totalPrice">—</span></div>
+          <div class="tiny note">Price updates as you change dates/rooms</div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button type="button" id="previewBtn" class="btn btn-ghost">Preview</button>
+          <button type="submit" id="confirmBtn" class="btn btn-primary">Confirm Booking</button>
+        </div>
+      </form>
+
+      <div class="note" style="margin-top:12px">Tip: open this page with <code>?hotel=Hunza%20Valley%20Lodge</code> or click Book from other pages.</div>
+    </section>
+
+    <!-- right: booking summary & stored bookings -->
+    <aside class="side">
+      <div class="card summary">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Selected Hotel</div>
+            <div style="font-weight:700" id="sidebarHotel">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Per night</div>
+            <div style="font-weight:700" id="sidebarPrice">—</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="small">Quick actions</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="openGalleryBtn" class="btn btn-ghost">Open gallery</button>
+          <button id="clearLocal" class="btn btn-ghost">Clear saved</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="small" style="margin-bottom:8px">Saved bookings</div>
+        <div class="bookings-list" id="bookingsList">
+          <!-- items -->
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- confirmation modal -->
+  <div class="modal" id="confirmModal" role="dialog" aria-hidden="true">
+    <div class="modal-card">
+      <h3 style="color:var(--rose-500)">Booking Confirmed</h3>
+      <p id="confirmText" class="tiny">Saved to your local bookings.</p>
+      <div style="margin-top:12px"><button id="closeConfirm" class="btn btn-primary">OK</button></div>
+    </div>
+  </div>
+
+  <!-- gallery modal -->
+  <div class="modal" id="galleryModal">
+    <div class="modal-card" style="max-width:740px">
+      <h3 id="galleryTitle" style="color:var(--rose-500)"></h3>
+      <img id="galleryLarge" src="" class="large-preview" alt="preview">
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+        <button id="galleryPrev" class="btn btn-ghost">◀</button>
+        <button id="galleryNext" class="btn btn-ghost">▶</button>
+      </div>
+      <div style="margin-top:10px"><button id="closeGallery" class="btn btn-primary">Close</button></div>
+    </div>
+  </div>
+
+<script>
+/* ======== Behaviour & data ======== */
+
+// Get selected hotel from localStorage (set from main page)
+const selected = JSON.parse(localStorage.getItem("selectedHotel"));
+
+// Get logged-in user
+const currentUser = JSON.parse(localStorage.getItem("user") || 'null');
+const userId = localStorage.getItem("userId");
+
+// Get hotel ID from URL or localStorage
+const urlParams = new URLSearchParams(window.location.search);
+const hotelIdFromURL = urlParams.get('id');
+const hotelId = selected?.id || hotelIdFromURL;
+
+const DEST_IMAGES = {
+  
+  "Hunza Valley": ["Images/hunza1.jpg", "Images/hunza3.jpg", "Images/hunza4.jpg", "Images/hunza lodge.jpg", "Images/eagle.jpeg", "Images/luxus.jpg"],
+  "Skardu": ["Images/skardu2.jpg", "Images/skardu3.jpg", "Images/skardu5.jpg", "Images/Skardu resort.webp", "Images/shangrila.jpeg"],
+  "Lahore": ["Images/lahore3.jpg", "Images/lahore1.avif", "Images/lahore4.jpg", "Images/serena.jpeg"],
+  "Karachi": ["Images/karachi2.jpg", "Images/karachi3.jpg", "Images/karachi4.jpg", "Images/pckarachi.jpeg", "Images/marriot.jpeg"],
+  "Islamabad": ["Images/islamabad9.webp", "Images/islamabad5.jpg", "Images/islamabad01.avif", "Images/faisal.jpeg"],
+  "Murree": ["Images/murree3.jpg", "Images/murree4.jpg", "Images/murree1.avif", "Images/hotelone.jpeg"],
+  "Margalla Hills": ["Images/margalla_hills3.jpg", "Images/margalla_hills4.jpg", "Images/margalla_hills5.jpg", "Images/serena.jpg"],
+  "Swat Valley": ["Images/swat2.jpg", "Images/swat3.jpg", "Images/swat4.jpg", "Images/resort.jpeg", "Images/malam.jpeg"],
+  "Mohenjo Daro": ["Images/mohenjo_daro1.avif","Images/mohenjo_daro2.jpg","Images/mohenjo_daro5.jpg"],
+  "Fairy Meadows": ["Images/fairy_meadows2.jpg","Images/fairy_meadows3.jpg","Images/fairy_meadows4.jpg", "Images/fairy.jpeg"],
+  "K2 Base Camp": ["Images/k22.jpg","Images/k23.jpg","Images/k24.jpg","Images/shangrila.jpeg"],
+  "Makli Necropolis": ["Images/makli1.jpg","Images/makli2.jpg","Images/makli3.jpg","Images/makli.jpeg"],
+  "Ratti Gali Lake": ["Images/ratti2.jpg","Images/ratti3.jpg","Images/ratti4.jpg","Images/ratti.jpeg"],
+  "Deosai National Park": ["Images/deosai2.jpg","Images/deosai3.jpg","Images/deosai4.jpg","Images/dcamp.jpeg"],
+  "Naltar Valley": ["Images/naltar2.jpg","Images/naltar3.jpg","Images/naltar4.jpg","Images/snow.jpeg"],
+  "Shogran & Siri Paye": ["Images/shogran2.jpg","Images/shogran3.jpg","Images/shogran4.jpg","Images/shogran.jpeg"],
+  "Khaplu": ["Images/khaplu1.webp","Images/khaplu.jpeg","Images/khaplu5.jpeg","Images/shigar.jpeg"],
+  "Passu Cones": ["Images/passu4.jpg","Images/passu2.jpg","Images/passu5.jpg","Images/passu.jpeg"]
+
+
+};
+
+/*
+if (selected) {
+    document.getElementById("hotelTitle").innerText = selected.name;
+    document.getElementById("hotelPrice").innerText = "PKR " + selected.price;
+    document.getElementById("hotelRating").innerText = "★ " + selected.rating;
+    document.getElementById("heroImage").src = selected.image;
+}
+*/
+
+// Auto-fill user details if logged in
+if (currentUser) {
+  $(document).ready(function() {
+    $('#fullName').val(currentUser.full_name || '');
+    $('#email').val(currentUser.email || '');
+  });
+}
+
+
+/* HOTEL BOOKING DATABASE (used ONLY in hotel bookings.html) */
+// Removed hardcoded hotel database - now using API
+
+
+
+/* Helper: read hotel param from URL */
+function getQueryParam(key){
+  return new URLSearchParams(window.location.search).get(key);
+}
+
+/* Load hotel from API by ID */
+async function loadHotelFromAPI() {
+  try {
+    if (!hotelId) {
+      throw new Error('No hotel ID provided');
+    }
+    
+    // Fetch hotel details from API
+    const hotel = await API.getHotel(hotelId);
+    
+    return { 
+      ok: true, 
+      hotel: {
+        name: hotel.hotel_name,
+        price: hotel.price,
+        rating: hotel.rating,
+        destination: hotel.destination_name,
+        images: hotel.images || [],
+        hotel_id: hotel.hotel_id
+      }
+    };
+  } catch (error) {
+    console.error('Error loading hotel from API:', error);
+    
+    // Fallback to selected hotel from localStorage
+    if (selected) {
+      const hotelObj = {
+        name: selected.name,
+        price: parseFloat(selected.price) || 0,
+        rating: parseFloat(selected.rating) || 0,
+        destination: 'Unknown',
+        images: selected.image ? [selected.image] : [],
+        hotel_id: selected.id || selected.hotel_id
+      };
+      console.log('⚠️ Using localStorage fallback hotel:', hotelObj);
+      return {
+        ok: false,
+        hotel: hotelObj
+      };
+    }
+    
+    throw new Error('No hotel data available');
+  }
+}
+
+/* Save bookings to localStorage */
+function readBookings() {
+  return JSON.parse(localStorage.getItem('myBookings') || '[]');
+}
+function writeBookings(arr) {
+  localStorage.setItem('myBookings', JSON.stringify(arr));
+}
+
+/* UI wiring after DB loaded */
+$(function(){
+  let hotelParamRaw = getQueryParam('hotel') || '';
+let hotelParam = hotelParamRaw.trim();
+
+  const $title = $('#hotelTitle');
+  const $hero = $('#heroImage');
+  const $price = $('#hotelPrice');
+  const $rating = $('#hotelRating');
+  const $sidebarHotel = $('#sidebarHotel');
+  const $sidebarPrice = $('#sidebarPrice');
+  const $gallery = $('#hotelGallery');
+  const $dataSource = $('#dataSource');
+
+  // bookings list render
+  function refreshBookingsList(){
+    const arr = readBookings();
+    const $list = $('#bookingsList').empty();
+    if(!arr.length){
+      $list.append('<div class="tiny" style="color:var(--muted)">No saved bookings</div>');
+      return;
+    }
+    arr.slice().reverse().forEach((b, idx)=>{
+      const i = arr.length - 1 - idx; // mapping for delete
+      const $item = $(`
+        <div class="booking-item">
+          <div>
+            <div style="font-weight:700">${b.hotel}</div>
+            <div class="tiny">${b.date} • ${b.nights} night(s) • ${b.guests} guest(s)</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-ghost view-book" data-i="${i}">View</button>
+            <button class="btn btn-ghost del-book" data-i="${i}">✕</button>
+          </div>
+        </div>
+      `);
+      $list.append($item);
+    });
+  }
+
+  refreshBookingsList();
+
+  // open bookings panel
+  $('#openBookings').on('click', ()=> {
+    showModal('#confirmModal', `<strong>Your Bookings</strong>`); // reuse modal to show message then close
+    // but better: show quick list in confirmModal with action buttons
+    // we'll build a more useful bookings modal:
+    const arr = readBookings();
+    
+    // Show notification if no bookings
+    if(!arr.length) {
+      Notify.info('You haven\'t made any bookings yet. Complete a booking to see it here!', 'No Bookings');
+    }
+    
+    let html = '<div style="text-align:left;max-height:300px;overflow:auto">';
+    if(!arr.length) html += '<p class="tiny" style="color:var(--muted)">No bookings saved yet.</p>';
+    else {
+      arr.slice().reverse().forEach(b=>{
+        html += `<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.03)"><strong>${escapeHtml(b.hotel)}</strong><div class="tiny">${escapeHtml(b.date)} • ${b.nights} night(s) • PKR ${b.total}</div></div>`;
+      });
+    }
+    html += '</div><div style="margin-top:12px"><button id="closeBookingsModal" class="btn btn-primary">Close</button></div>';
+    $('#confirmText').html(html);
+    $('#confirmModal').addClass('show');
+    $('#closeConfirm').hide();
+    $('#closeBookingsModal').on('click', ()=> { $('#confirmModal').removeClass('show'); $('#closeConfirm').show(); $('#confirmText').text('Saved to your local bookings.'); });
+  });
+
+  $('#clearLocal').on('click', async ()=> {
+    const confirmed = await Notify.confirm(
+      'This will remove all your saved bookings from local storage. This action cannot be undone.',
+      { title: 'Clear All Bookings?', confirmText: 'Clear', isDanger: true }
+    );
+    if(!confirmed) return;
+    writeBookings([]);
+    refreshBookingsList();
+    Notify.success('All saved bookings have been cleared.', 'Bookings Cleared');
+  });
+
+  // gallery modal helpers
+  let galleryImgs = [], galleryIndex = 0;
+  function openGallery(idx=0){
+    if(!galleryImgs.length) return;
+    galleryIndex = idx;
+    $('#galleryTitle').text($('#hotelTitle').text());
+    $('#galleryLarge').attr('src', galleryImgs[galleryIndex]);
+    $('#galleryModal').addClass('show');
+  }
+  $('#openGalleryBtn').on('click', ()=> openGallery(0));
+  $('#galleryNext').on('click', ()=> { galleryIndex = (galleryIndex+1)%galleryImgs.length; $('#galleryLarge').attr('src', galleryImgs[galleryIndex]); });
+  $('#galleryPrev').on('click', ()=> { galleryIndex = (galleryIndex-1+galleryImgs.length)%galleryImgs.length; $('#galleryLarge').attr('src', galleryImgs[galleryIndex]); });
+  $('#closeGallery').on('click', ()=> $('#galleryModal').removeClass('show'));
+  $('#galleryModal').on('click', function(e){ if(e.target === this) $('#galleryModal').removeClass('show'); });
+
+  // preview modal utilities
+  function showModal(sel, text){
+    $(sel).addClass('show');
+    $('#confirmText').html(text || '');
+  }
+  $('#closeConfirm').on('click', ()=> {
+    $('#confirmModal').removeClass('show');
+    $('#closeConfirm').show();
+  });
+  $('#confirmModal').on('click', function(e){ if(e.target === this) $(this).removeClass('show'); });
+
+  // date helpers
+  function parseDate(d){ return new Date(d + 'T00:00:00'); }
+  function nightsBetween(inD, outD){
+    const a = parseDate(inD), b = parseDate(outD);
+    const diff = Math.round((b - a)/(1000*60*60*24));
+    return diff > 0 ? diff : 1;
+  }
+
+  // compute total and update preview
+  function updateTotal(perNight){
+    const ci = $('#checkIn').val(), co = $('#checkOut').val();
+    const rooms = Math.max(1, Number($('#rooms').val()||1));
+    const nights = ci && co ? nightsBetween(ci, co) : 1;
+    const perNightNum = parseFloat(perNight) || 0;
+    const total = perNightNum * nights * rooms;
+    $('#totalPrice').text(total > 0 ? 'PKR ' + total.toLocaleString() : 'Price on request');
+    return { total, nights };
+  }
+
+  // small escape for text
+  function escapeHtml(str){ return String(str||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // Load hotel from API and render
+  loadHotelFromAPI().then(({ok, hotel})=>{
+    console.log('✅ Hotel loaded from API:', { ok, hotel });
+    $dataSource.text(ok ? 'API (backend database)' : 'localStorage fallback');
+    
+    const chosenHotel = hotel;
+
+
+    
+
+    // Render chosenHotel into UI
+    function renderHotel(h){
+      $('#hotelTitle').text(h.name);
+      $('#sidebarHotel').text(h.name);
+      $('#hotelPrice').text('PKR ' + (h.price ? h.price.toLocaleString() : '—'));
+      $('#sidebarPrice').text(h.price ? 'PKR ' + h.price.toLocaleString() : '—');
+      $('#hotelRating').text(h.rating ? '★ ' + h.rating : '');
+
+      // Use hotel images from API, fallback to destination images
+      let hotelImages = h.images && h.images.length ? h.images : [];
+      const destImgs = DEST_IMAGES[h.destination] || [];
+      
+      // Combine hotel images with destination images
+      galleryImgs = hotelImages.length ? hotelImages : destImgs;
+      
+      if (!galleryImgs.length) {
+        galleryImgs = ['Images/placeholder.jpg'];
+      }
+      
+      $('#heroImage').attr('src', galleryImgs[0]);
+      $('#hotelGallery').empty();
+      galleryImgs.forEach((src,i) => {
+        const $img = $('<img>').attr('src', src).attr('data-i', i);
+        $img.on('click', ()=> { $('#heroImage').attr('src', src); });
+        $('#hotelGallery').append($img);
+      });
+
+      // set default form dates: today + next day
+      const today = new Date();
+      const tISO = today.toISOString().slice(0,10);
+      const tomorrow = new Date(today.getTime() + 24*60*60*1000).toISOString().slice(0,10);
+      if(!$('#checkIn').val()) $('#checkIn').val(tISO);
+      if(!$('#checkOut').val()) $('#checkOut').val(tomorrow);
+
+      // set price preview
+      updateTotal(h.price || 0);
+    }
+
+    renderHotel(chosenHotel);
+    
+
+    // re-compute total when date/rooms change
+    $('#checkIn, #checkOut, #rooms, #guests').on('change input', ()=> updateTotal(chosenHotel.price));
+
+    // PREVIEW button: show a simple preview box
+    $('#previewBtn').on('click', (e) => {
+      e.preventDefault();
+      const name = $('#fullName').val(), email = $('#email').val();
+      if(!name || !email) { 
+        Notify.warning('Please enter both your name and email to preview your booking.', 'Missing Information'); 
+        return; 
+      }
+      const ci = $('#checkIn').val(), co = $('#checkOut').val();
+      const { total, nights } = updateTotal(chosenHotel.price);
+      const guests = $('#guests').val(), rooms = $('#rooms').val();
+      const html = `
+        <div style="text-align:left">
+          <strong>${escapeHtml(chosenHotel.name)}</strong><br>
+          ${escapeHtml(ci)} → ${escapeHtml(co)} (${nights} night(s))<br>
+          Rooms: ${rooms} • Guests: ${guests}<br>
+          <div style="margin-top:8px"><strong>Total: PKR ${total.toLocaleString()}</strong></div>
+        </div>
+      `;
+      $('#confirmText').html('<div style="font-weight:700;margin-bottom:8px">Preview Booking</div>' + html);
+      $('#confirmModal').addClass('show');
+    });
+
+    // SUBMIT (confirm) booking: save to backend API
+    console.log('🎯 Form handler being attached to #bookingForm');
+    $('#bookingForm').on('submit', async function(ev){
+      console.log('📝 Form submitted! Event:', ev);
+      ev.preventDefault();
+      
+      // Check if user is logged in
+      if (!userId) {
+        Notify.warning('Please login to make a booking. Redirecting to main page...', 'Login Required');
+        const loader = Notify.loading('Redirecting to login...');
+        setTimeout(() => {
+          loader.hide();
+          window.location.href = 'front end code.html';
+        }, 2000);
+        return;
+      }
+      
+      const name = $('#fullName').val(), email = $('#email').val();
+      if(!name || !email) { 
+        Notify.warning('Please enter both your name and email address.', 'Missing Information'); 
+        return; 
+      }
+      const ci = $('#checkIn').val(), co = $('#checkOut').val();
+      if(!ci || !co) { 
+        Notify.warning('Please select both check-in and check-out dates.', 'Missing Dates'); 
+        return; 
+      }
+      
+      const rooms = Number($('#rooms').val()||1);
+      const guests = Number($('#guests').val()||1);
+      
+      // Validate dates
+      const checkInDate = new Date(ci);
+      const checkOutDate = new Date(co);
+      if(checkOutDate <= checkInDate) {
+        Notify.warning('Check-out date must be after check-in date.', 'Invalid Dates');
+        return;
+      }
+      
+      // Validate future dates
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      if(checkInDate < today) {
+        Notify.warning('Check-in date cannot be in the past.', 'Invalid Date');
+        return;
+      }
+      const { total, nights } = updateTotal(chosenHotel.price);
+
+      console.log('📦 chosenHotel data:', chosenHotel);
+      console.log('📦 Preparing booking data:', { userId, hotel_id: chosenHotel.hotel_id, ci, co, total });
+
+      try {
+        // Show loading state
+        $('#confirmBtn').html('<span class="loading"></span>Processing...');
+        $('#confirmBtn').prop('disabled', true);
+
+        // Helper: show success and redirect
+        function finishBooking(bookingId) {
+          const newBooking = {
+            id: bookingId,
+            hotel: chosenHotel.name,
+            destination: chosenHotel.destination || chosenHotel.name,
+            name, email, date: ci, checkout: co, nights, rooms, guests,
+            perNight: chosenHotel.price || 0, total
+          };
+          const arr = readBookings();
+          arr.push(newBooking);
+          writeBookings(arr);
+          refreshBookingsList();
+
+          const priceText = total > 0 ? `PKR ${total.toLocaleString()}` : 'Price on request';
+          const idText = bookingId ? `Booking ID: ${bookingId}<br>` : '';
+          $('#confirmText').html(`<div style="font-weight:700">${escapeHtml(chosenHotel.name)}</div>
+            <div class="tiny" style="margin-top:8px">✅ Booking confirmed for ${escapeHtml(name)}<br>
+            ${escapeHtml(ci)} to ${escapeHtml(co)} (${nights} nights)<br>
+            ${idText}Total: ${priceText}</div>`);
+          $('#confirmModal').addClass('show');
+
+          // reset form
+          $('#bookingForm')[0].reset();
+          if (currentUser) {
+            $('#fullName').val(currentUser.full_name || '');
+            $('#email').val(currentUser.email || '');
+          }
+          const todayStr = new Date().toISOString().slice(0,10);
+          $('#checkIn').val(todayStr);
+          $('#checkOut').val(new Date(Date.now()+86400000).toISOString().slice(0,10));
+
+          Notify.success('Your booking has been confirmed! Redirecting to your profile...', 'Booking Successful');
+          setTimeout(() => { window.location.href = 'profile.html'; }, 2500);
+        }
+
+        // If we have a real hotel_id, try the API first
+        if (chosenHotel.hotel_id && userId) {
+          const bookingData = {
+            user_id: parseInt(userId),
+            hotel_id: parseInt(chosenHotel.hotel_id),
+            check_in: ci,
+            check_out: co,
+            price_paid: total,
+            booking_status: 'confirmed'
+          };
+          try {
+            console.log('🚀 Calling API.createBooking with:', bookingData);
+            const response = await API.createBooking(bookingData);
+            console.log('✅ API Response:', response);
+            if (response && response.booking_id) {
+              finishBooking(response.booking_id);
+              return;
+            }
+          } catch (apiErr) {
+            console.warn('API booking failed, falling back to local save:', apiErr);
+          }
+        }
+
+        // Fallback: save locally (no hotel_id, not logged in, or API failed)
+        const localId = 'local-' + Date.now();
+        finishBooking(localId);
+
+      } catch (error) {
+        console.error('Booking error:', error);
+        Notify.error('Unable to create booking. Please try again later.', 'Booking Failed');
+      } finally {
+        // Reset button state
+        $('#confirmBtn').html('Confirm Booking');
+        $('#confirmBtn').prop('disabled', false);
+      }
+    });
+
+    // delegate view/delete from bookings list
+    $('#bookingsList').on('click', '.del-book', async function(){
+      const confirmed = await Notify.confirm(
+        'Are you sure you want to delete this booking? This action cannot be undone.',
+        { title: 'Delete Booking?', confirmText: 'Delete', isDanger: true }
+      );
+      if(!confirmed) return;
+      const i = Number($(this).attr('data-i'));
+      const arr = readBookings(); 
+      const deletedBooking = arr[i];
+      arr.splice(i,1); 
+      writeBookings(arr); 
+      refreshBookingsList();
+      Notify.success(`Booking for ${deletedBooking.hotel} has been removed.`, 'Booking Deleted');
+    });
+    $('#bookingsList').on('click', '.view-book', function(){
+      const i = Number($(this).attr('data-i'));
+      const arr = readBookings(); const b = arr[i];
+      if(!b) {
+        Notify.error('Booking not found in local storage.', 'Not Found');
+        return;
+      }
+      const html = `<div style="text-align:left">
+        <strong>${escapeHtml(b.hotel)}</strong><br>
+        Guest: ${escapeHtml(b.name)}<br>
+        ${escapeHtml(b.date)} → ${escapeHtml(b.checkout)} (${b.nights} nights)<br>
+        Rooms: ${b.rooms} • Guests: ${b.guests}<br>
+        <div style="margin-top:8px"><strong>Total: PKR ${b.total.toLocaleString()}</strong></div>
+      </div>`;
+      $('#confirmText').html(html);
+      $('#confirmModal').addClass('show');
+    });
+
+  }).catch(err=>{
+    console.error('DB load error', err);
+    Notify.error('Unable to load hotel information. Please try again later.', 'Error Loading Hotel');
+  });
+
+  // helper: close modals when clicking outside
+  $('.modal').on('click', function(e){ if(e.target === this) $(this).removeClass('show'); });
+
+}); // end jQuery ready
+</script>
+
+<!-- Load Notification System (after DOM is ready) -->
+<script src="notification-system.js"></script>
+</body>
+</html>
